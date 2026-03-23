@@ -1,0 +1,385 @@
+/* =========================================
+   Dodgeball Tactics - Pro Visual Style
+   Fonts: Teko (Bold/Sporty), Orbitron (Digital/Sci-fi)
+   ========================================= */
+
+/* Google Fonts の読み込みを index.html に入れるのを忘れずに！ */
+
+body {
+    background-color: #050505; /* 深い漆黒 */
+    color: #f0f0f0;
+    font-family: 'Teko', sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    letter-spacing: 0.05em;
+}
+
+/* --- ヘッダー・タイトル --- */
+.header-controls {
+    padding: 20px;
+    width: 100%;
+    background: linear-gradient(180deg, #111 0%, #000 100%);
+    border-bottom: 3px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    letter-spacing: 0.2em;
+    margin: 0 0 15px 0;
+    background: linear-gradient(90deg, #ff3e3e, #ff8c00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+}
+
+/* --- チームスタッツ (ネオンスタイル) --- */
+.team-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 20px;
+    background: rgba(20, 20, 20, 0.9);
+    padding: 12px 40px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    box-shadow: inset 0 0 15px rgba(255,255,255,0.05);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: -5px;
+}
+
+#on-court-count, #total-team-score {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+}
+
+#on-court-count { color: #fff; }
+#total-team-score { color: #00ffff; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
+
+.max-count { font-size: 12px; color: #444; margin-left: 2px; }
+
+.team-rank {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px;
+    font-weight: 900;
+    font-style: italic;
+    margin-top: -5px;
+}
+
+/* --- モード切替・管理エリア --- */
+.mode-switches { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+
+.tactic-management {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    background: #1a1a1a;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+button {
+    font-family: 'Teko', sans-serif;
+    text-transform: uppercase;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 6px 20px;
+    cursor: pointer;
+    background: #333;
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    transition: 0.2s;
+}
+
+button:hover { background: #444; transform: translateY(-1px); }
+button.active { background: #ff3e3e; box-shadow: 0 0 15px rgba(255,62,62,0.4); }
+.save-btn { background: #28a745; }
+.save-btn:hover { background: #32c554; }
+
+input[type="text"], select {
+    background: #000;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 8px;
+    font-family: 'Teko', sans-serif;
+    font-size: 16px;
+    border-radius: 2px;
+}
+
+/* --- 選手カード：絶対固定デザイン --- */
+.player-card {
+    width: 65px !important;
+    height: 95px !important;
+    background: #111 !important;
+    border-radius: 8px;
+    position: absolute; /* 掴む瞬間の挙動安定のため */
+    cursor: grab;
+    z-index: 500;
+    border: 1.5px solid #fff;
+    box-sizing: border-box;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+    overflow: hidden;
+    padding: 0 !important;
+}
+/* 掴んだ瞬間のスタイル（ここを維持） */
+.player-card[data-dragging="true"] {
+    z-index: 3000 !important;
+    cursor: grabbing;
+    opacity: 1 !important;
+    box-shadow: 0 0 15px rgba(255,255,255,0.4);
+}
+
+.player-card.filtered-out { display: none; }
+
+/* ポジション別ネオンカラー */
+.pos-AT { border-color: #ff3e3e !important; box-shadow: 0 0 10px rgba(255,62,62,0.4); }
+.pos-OA { border-color: #ff8c00 !important; box-shadow: 0 0 10px rgba(255,140,0,0.4); }
+.pos-DE { border-color: #00ffff !important; box-shadow: 0 0 10px rgba(0,255,255,0.4); }
+.pos-PC { border-color: #ffff00 !important; box-shadow: 0 0 10px rgba(255,255,0,0.4); }
+
+/* ランクと評価値のコンテナ */
+.card-rank-display {
+    position: absolute !important;
+    top: 2px !important;
+    left: 4px !important;
+    right: 4px !important;
+    height: 18px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px !important;
+    font-weight: 900;
+    z-index: 20;
+}
+
+/* ランク別カラー */
+.rank-text-SS { color: #00ffff; text-shadow: 0 0 5px #00ffff; }
+.rank-text-S  { color: #ffff00; text-shadow: 0 0 5px #ffff00; }
+.rank-text-A  { color: #fff; }
+.rank-text-B  { color: #ff8c00; }
+.rank-text-C  { color: #888; }
+
+/* ポジション帯（白） */
+.card-pos {
+    position: absolute !important;
+    top: 30px !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 16px !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px !important;
+    font-weight: 900;
+    text-align: center;
+    line-height: 16px !important;
+    z-index: 10;
+}
+
+/* 名前（下部） */
+.card-name {
+    position: absolute !important;
+    bottom: 5px !important;
+    left: 0 !important;
+    width: 100% !important;
+    font-family: 'Anton', sans-serif;
+    font-style: italic;
+    text-align: center;
+    color: #fff !important;
+    z-index: 10;
+    white-space: nowrap;
+    line-height: 1.2 !important;
+}
+
+/* 選手カードの中の名前要素が特定の文字数を超えた場合の微調整 */
+/* JSでクラスを付与するとより確実ですが、まずはCSSで極限まで広げます */
+
+/* --- コートエリア --- */
+.canvas-container { margin: 30px 0; border: 4px solid #222; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+.court-image-wrapper { position: relative; line-height: 0; }
+.base-image { width: 1000px; filter: brightness(0.8) contrast(1.2); }
+
+/* --- 選手ベンチエリア --- */
+.player-pool-container {
+    width: 100%;
+    padding: 30px;
+    background: #080808;
+    border-top: 1px solid #222;
+}
+
+.bench-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 50px;
+    margin-bottom: 25px;
+}
+
+.bench-header h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: #555;
+    margin: 0;
+}
+
+.bench-controls { display: flex; align-items: center; gap: 20px; }
+
+#player-search {
+    width: 250px;
+    border: 1px solid #333;
+    background: #000;
+    padding: 10px 15px;
+    transition: 0.3s;
+}
+
+#player-search:focus { border-color: #00ffff; box-shadow: 0 0 10px rgba(0,255,255,0.2); outline: none; }
+
+.player-pool {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 150px;
+}
+
+/* ベンチ内ではカードを整列 */
+.player-pool .player-card {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    margin: 0;
+}
+
+/* --- 全体的なフォント指定の変更 --- */
+body {
+    /* デフォルトを明朝体に変更 */
+    font-family: 'Noto Serif JP', serif;
+    background-color: #050505;
+    color: #f0f0f0;
+}
+
+/* ヘッダーの統計情報のラベル */
+.stat-label {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+}
+
+/* 検索ボックスと入力エリア */
+input[type="text"], 
+select, 
+#player-search {
+    font-family: 'Noto Serif JP', serif !important;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+/* ボタン類（保存・リセット・検索など） */
+button {
+    font-family: 'Noto Serif JP', serif !important;
+    font-weight: 700;
+    text-transform: none; /* 明朝体なので大文字強制を解除 */
+    letter-spacing: 0.05em;
+}
+
+/* 陣形管理エリアのテキスト */
+.tactic-management, 
+.bench-header h3 {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 700;
+}
+
+/* ベンチのタイトルなどは少し太めに */
+.bench-header h3 {
+    color: #aaa;
+    letter-spacing: 0.2em;
+}
+
+/* ベースのスタイル */
+.team-rank {
+    font-size: 28px;
+    font-weight: 900;
+    margin-left: 5px;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+/* ランク別カラー（ネオンエフェクト） */
+.rank-s { color: #ffdf00 !important; text-shadow: 0 0 15px #ffdf00, 0 0 30px #ffa500 !important; }
+.rank-a { color: #ff4d4d !important; text-shadow: 0 0 15px #ff4d4d !important; }
+.rank-b { color: #00d2ff !important; text-shadow: 0 0 15px #00d2ff !important; }
+.rank-c { color: #4dff4d !important; text-shadow: 0 0 10px #4dff4d !important; }
+.rank-d { color: #ffffff !important; }
+.rank-e { color: #888888 !important; }
+
+/* ランクが上がった時の跳ねるアニメーション */
+@keyframes rankJump {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.8); filter: brightness(2); } /* 1.8倍までデカく光る */
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* JavaScriptから制御しやすくするためのクラス */
+.animate-rank {
+    animation: rankJump 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* SSSランク：虹色に輝く特別な設定 */
+.rank-sss {
+    color: #fff !important;
+    text-shadow: 0 0 10px #fff, 0 0 20px #ff00de, 0 0 30px #ff00de !important;
+    animation: sss-glow 2s infinite alternate, rankJump 0.4s ease-out !important;
+}
+
+.rank-sss {
+    background: linear-gradient(to right, #fff, #00ffff, #ff00de, #fff);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: sss-shine 2s linear infinite !important;
+    font-size: 44px !important;
+    filter: drop-shadow(0 0 10px rgba(0,255,255,0.5));
+}
+
+@keyframes sss-shine {
+    to { background-position: 200% center; }
+}
+
+.player-card {
+    /* 座標が変わった時に0.5秒かけてスルスル動かす設定 */
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    position: absolute; /* これがないと重なりや動きがおかしくなります */
+    will-change: transform; /* アニメーションを滑らかにするおまじない */
+}
+
+/* ドラッグ中はアニメーションを邪魔しないように一時オフにするクラス */
+.player-card[data-dragging="true"] {
+    transition: none !important;
+}

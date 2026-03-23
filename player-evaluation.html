@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>選手能力評価 | さくらGroup</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto+Slab:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.5.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.5.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+<style>
+:root{
+  --bg:#07070f;--bg2:#0c0c18;--bg3:#111120;
+  --gold:#ffd700;--gold2:#d4af37;--gold3:#b8860b;
+  --gdim:rgba(255,215,0,.1);--gglow:rgba(255,215,0,.35);
+  --glass:rgba(255,255,255,.03);--gborder:rgba(255,215,0,.12);
+  --text:#ede0c4;--text2:#8a7050;
+  --serif:'Cinzel',serif;--slab:'Roboto Slab',serif;--sans:'Noto Sans JP',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px;}
+
+/* noise overlay */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.025;
+}
+
+header{
+  padding:20px 40px;text-align:center;
+  background:rgba(7,7,15,.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--gborder);position:sticky;top:0;z-index:100;
+}
+.header-back{
+  position:absolute;left:20px;top:50%;transform:translateY(-50%);
+  font-family:var(--slab);font-size:11px;letter-spacing:2px;
+  color:var(--text2);text-decoration:none;text-transform:uppercase;transition:.25s;
+}
+.header-back:hover{color:var(--gold);}
+header h1{
+  font-family:var(--serif);font-size:22px;font-weight:900;letter-spacing:5px;
+  background:linear-gradient(135deg,#ffe080,#ffd700);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.header-sub{font-family:var(--slab);font-size:10px;letter-spacing:5px;color:var(--text2);margin-top:4px;text-transform:uppercase;}
+
+main{max-width:1100px;margin:0 auto;padding:40px 20px;position:relative;z-index:1;}
+.page-title{
+  font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:3px;
+  color:var(--gold);margin-bottom:36px;padding-bottom:14px;
+  border-bottom:1px solid var(--gborder);
+}
+
+/* ─── DASHBOARD GRID ─── */
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.layout-full{grid-column:1/-1;}
+
+.panel{
+  background:var(--glass);border:1px solid var(--gborder);border-radius:12px;padding:28px;
+  position:relative;overflow:hidden;
+}
+.panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,215,0,.3),transparent);
+}
+.panel-title{
+  font-family:var(--serif);font-size:13px;letter-spacing:4px;
+  color:var(--gold);margin-bottom:20px;text-transform:uppercase;
+  padding-bottom:10px;border-bottom:1px solid var(--gborder);
+}
+
+.form-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.form-label{font-family:var(--slab);font-size:11px;letter-spacing:3px;color:var(--text2);text-transform:uppercase;min-width:72px;flex-shrink:0;}
+input[type="text"],select{
+  background:rgba(255,255,255,.04);border:none;border-bottom:1px solid var(--gborder);
+  color:var(--text);font-family:var(--slab);font-size:14px;
+  padding:10px 12px;outline:none;transition:.3s;-webkit-appearance:none;appearance:none;flex:1;min-width:0;
+}
+input[type="text"]:focus,select:focus{border-bottom-color:var(--gold);background:rgba(255,255,255,.06);}
+input[type="text"]::placeholder{color:var(--text2);}
+select option{background:var(--bg2);color:var(--text);}
+
+.btn-save{
+  display:inline-block;padding:10px 22px;margin-top:10px;
+  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  color:#07070f;font-family:var(--slab);font-size:12px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;border:none;border-radius:3px;
+  cursor:pointer;transition:.3s;
+}
+.btn-save:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--gglow);}
+
+#playerList{
+  width:100%;padding:10px 14px;margin-top:10px;
+  background:rgba(255,215,0,.06);border:1px solid var(--gborder);
+  color:var(--gold);font-family:var(--slab);font-size:14px;
+  border-radius:4px;-webkit-appearance:none;appearance:none;outline:none;
+}
+#playerList option{background:var(--bg2);color:var(--text);}
+
+/* ─── RADAR CHART (big) ─── */
+.chart-panel-inner{display:flex;align-items:center;justify-content:center;}
+.chart-wrap{width:100%;max-width:480px;margin:0 auto;}
+
+/* ─── RANGE SLIDERS ─── */
+.rating-table{width:100%;border-collapse:collapse;}
+.rating-table tr{border-bottom:1px solid rgba(255,215,0,.05);transition:.2s;}
+.rating-table tr:hover{background:rgba(255,215,0,.025);}
+.rating-table td{padding:10px 6px;font-family:var(--slab);font-size:13px;}
+.rating-table td:first-child{color:var(--text2);width:40%;}
+.rating-table td:nth-child(2){width:50%;}
+.rating-table td:last-child{width:10%;text-align:center;}
+
+.slider-cell{display:flex;align-items:center;gap:10px;}
+
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  flex:1;height:3px;border-radius:2px;outline:none;cursor:pointer;
+  background:linear-gradient(to right,var(--gold) var(--fill,49%),rgba(255,215,0,.12) var(--fill,49%));
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--gold);
+  box-shadow:0 0 8px rgba(255,215,0,.6);
+  transition:transform .15s;
+}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.3);}
+input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;border:none;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 8px rgba(255,215,0,.6);
+}
+
+.slider-val{
+  font-family:var(--slab);font-size:12px;color:var(--gold);
+  min-width:28px;text-align:right;
+}
+
+/* ─── RANK BADGES (glowing) ─── */
+.rank-badge{
+  display:inline-block;font-family:var(--serif);font-size:11px;
+  padding:3px 9px;border-radius:3px;letter-spacing:1px;font-weight:700;
+  min-width:36px;text-align:center;transition:.3s;
+}
+.rank-SS{
+  background:rgba(255,215,0,.18);color:var(--gold);
+  box-shadow:0 0 12px rgba(255,215,0,.25),inset 0 0 8px rgba(255,215,0,.08);
+  text-shadow:0 0 8px var(--gold);
+}
+.rank-S{background:rgba(180,180,220,.15);color:#c0c0e0;box-shadow:0 0 8px rgba(180,180,220,.15);}
+.rank-A{background:rgba(100,180,100,.15);color:#80cc80;box-shadow:0 0 8px rgba(100,180,100,.15);}
+.rank-B{background:rgba(100,140,200,.15);color:#80a0e0;box-shadow:0 0 8px rgba(100,140,200,.12);}
+.rank-C{background:rgba(100,100,100,.12);color:#888;}
+
+/* ─── SCORE DISPLAY ─── */
+.score-display{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:24px 28px;background:rgba(255,215,0,.04);
+  border:1px solid var(--gborder);border-radius:10px;margin-top:20px;
+  flex-wrap:wrap;gap:16px;
+  position:relative;overflow:hidden;
+}
+.score-display::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,215,0,.03) 0%,transparent 60%);
+  pointer-events:none;
+}
+.score-label{font-family:var(--slab);font-size:11px;letter-spacing:3px;color:var(--text2);text-transform:uppercase;}
+.score-value{font-family:var(--serif);font-size:28px;font-weight:700;color:var(--gold);margin-top:4px;}
+.rank-display{
+  font-family:var(--serif);font-size:56px;font-weight:900;color:var(--gold);
+  text-shadow:0 0 30px rgba(255,215,0,.5),0 0 60px rgba(255,215,0,.2);
+  line-height:1;
+}
+.rank-hint{font-family:var(--slab);font-size:10px;color:var(--text2);margin-top:6px;letter-spacing:.3px;}
+
+textarea{
+  width:100%;padding:10px 14px;
+  background:rgba(255,255,255,.04);border:1px solid var(--gborder);
+  color:var(--text);font-family:var(--slab);font-size:13px;
+  outline:none;transition:.3s;resize:vertical;border-radius:4px;margin-top:4px;
+}
+textarea:focus{border-color:var(--gold2);}
+
+@media(max-width:760px){
+  .layout{grid-template-columns:1fr;}
+  .layout-full{grid-column:1;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="header-back">← トップ</a>
+  <h1>さくらGroup</h1>
+  <div class="header-sub">Player Evaluation</div>
+</header>
+
+<main>
+  <div class="page-title">ドッジボール選手評価</div>
+  <div class="layout">
+
+    <!-- レーダーチャート（大・全幅） -->
+    <div class="panel layout-full">
+      <div class="panel-title">能力レーダーチャート</div>
+      <div class="chart-panel-inner">
+        <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 選手管理 -->
+    <div class="panel">
+      <div class="panel-title">選手管理</div>
+      <div class="form-row">
+        <span class="form-label">名前</span>
+        <input type="text" id="playerName" placeholder="選手名を入力">
+      </div>
+      <div class="form-row">
+        <span class="form-label">年齢</span>
+        <select id="playerAge">
+          <option value="" disabled selected hidden>年齢を選択</option>
+          <option value="12">12</option><option value="13">13</option><option value="14">14</option>
+          <option value="15">15</option><option value="16">16</option><option value="17">17</option>
+          <option value="18">18</option><option value="19">19</option><option value="20">20</option>
+          <option value="21+">21以上</option>
+        </select>
+      </div>
+      <button class="btn-save" onclick="savePlayer()">選手を保存</button>
+      <select id="playerList" onchange="selectPlayer()">
+        <option value="">— 選手を選択 —</option>
+      </select>
+    </div>
+
+    <!-- プレースタイル -->
+    <div class="panel">
+      <div class="panel-title">プレースタイル</div>
+      <div class="form-row">
+        <span class="form-label">タイプ</span>
+        <select id="playStyleSelect">
+          <option value="">選択してください</option>
+          <option value="オールラウンダー">オールラウンダー</option>
+          <option value="攻撃型">攻撃型</option>
+          <option value="守備型">守備型</option>
+          <option value="スピード型">スピード型</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+        <span class="form-label">自由記入</span>
+        <input type="text" id="playStyle" placeholder="例: 守備安定型" style="width:100%;">
+      </div>
+      <div class="form-row">
+        <span class="form-label">メイン</span>
+        <select id="mainPosition">
+          <option value="">選択してください</option>
+          <option value="内野アタッカー">内野アタッカー</option>
+          <option value="内野守備">内野守備</option>
+          <option value="外野">外野</option>
+          <option value="カット">カット</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <span class="form-label">サブ</span>
+        <select id="subPosition">
+          <option value="">選択してください</option>
+          <option value="内野アタッカー">内野アタッカー</option>
+          <option value="内野守備">内野守備</option>
+          <option value="外野">外野</option>
+          <option value="カット">カット</option>
+          <option value="なし">なし</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 能力評価スライダー -->
+    <div class="panel layout-full">
+      <div class="panel-title">能力評価（各項目 1–100）</div>
+      <table class="rating-table">
+        <tr><td>コントロール</td><td class="slider-cell"><input type="range" id="control" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="controlVal">50</span></td><td><span id="controlRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>球速</td><td class="slider-cell"><input type="range" id="speed" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="speedVal">50</span></td><td><span id="speedRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>テクニック</td><td class="slider-cell"><input type="range" id="technique" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="techniqueVal">50</span></td><td><span id="techniqueRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>球威</td><td class="slider-cell"><input type="range" id="ballPower" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="ballPowerVal">50</span></td><td><span id="ballPowerRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>ハンドキャッチ</td><td class="slider-cell"><input type="range" id="handCatch" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="handCatchVal">50</span></td><td><span id="handCatchRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>フェイント</td><td class="slider-cell"><input type="range" id="feint" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="feintVal">50</span></td><td><span id="feintRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>パスカット</td><td class="slider-cell"><input type="range" id="passcut" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="passcutVal">50</span></td><td><span id="passcutRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>ディフェンスカット</td><td class="slider-cell"><input type="range" id="defensecut" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="defensecutVal">50</span></td><td><span id="defensecutRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>スピンコントロール</td><td class="slider-cell"><input type="range" id="spinControl" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="spinControlVal">50</span></td><td><span id="spinControlRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>スタミナ</td><td class="slider-cell"><input type="range" id="stamina" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="staminaVal">50</span></td><td><span id="staminaRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>俊敏性</td><td class="slider-cell"><input type="range" id="agility" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="agilityVal">50</span></td><td><span id="agilityRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>反射神経</td><td class="slider-cell"><input type="range" id="reflexes" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="reflexesVal">50</span></td><td><span id="reflexesRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>キャッチング</td><td class="slider-cell"><input type="range" id="catching" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="catchingVal">50</span></td><td><span id="catchingRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>積極性</td><td class="slider-cell"><input type="range" id="aggressiveness" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="aggressivenessVal">50</span></td><td><span id="aggressivenessRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>コンディション安定</td><td class="slider-cell"><input type="range" id="conditionStability" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="conditionStabilityVal">50</span></td><td><span id="conditionStabilityRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>視野</td><td class="slider-cell"><input type="range" id="vision" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="visionVal">50</span></td><td><span id="visionRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>思考力</td><td class="slider-cell"><input type="range" id="thinking" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="thinkingVal">50</span></td><td><span id="thinkingRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>連携力</td><td class="slider-cell"><input type="range" id="teamwork" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="teamworkVal">50</span></td><td><span id="teamworkRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>戦術理解</td><td class="slider-cell"><input type="range" id="tacticalUnderstanding" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="tacticalUnderstandingVal">50</span></td><td><span id="tacticalUnderstandingRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>攻撃意識</td><td class="slider-cell"><input type="range" id="attackAwareness" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="attackAwarenessVal">50</span></td><td><span id="attackAwarenessRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>守備意識</td><td class="slider-cell"><input type="range" id="defenseAwareness" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="defenseAwarenessVal">50</span></td><td><span id="defenseAwarenessRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>プレッシャー耐性</td><td class="slider-cell"><input type="range" id="pressureResistance" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="pressureResistanceVal">50</span></td><td><span id="pressureResistanceRank" class="rank-badge rank-C">C</span></td></tr>
+        <tr><td>ポジショニング</td><td class="slider-cell"><input type="range" id="positioning" min="1" max="100" value="50" oninput="updateAll();updateSlider(this)"><span class="slider-val" id="positioningVal">50</span></td><td><span id="positioningRank" class="rank-badge rank-C">C</span></td></tr>
+      </table>
+      <div class="score-display">
+        <div>
+          <div class="score-label">合計スコア</div>
+          <div class="score-value"><span id="totalScore">1150</span>点</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="rank-display" id="rank">A</div>
+          <div class="rank-hint">SS≥1600 / S≥1450 / A≥1150 / B≥700 / C≥1</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- その他特徴 -->
+    <div class="panel layout-full">
+      <div class="panel-title">その他特徴・癖</div>
+      <textarea id="extraInfo" rows="5" placeholder="特徴や癖を入力してください…"></textarea>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
+  authDomain: "dodge-player-7a5ff.firebaseapp.com",
+  databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dodge-player-7a5ff",
+  storageBucket: "dodge-player-7a5ff.firebasestorage.app",
+  messagingSenderId: "752106851441",
+  appId: "1:752106851441:web:7081da0e058980ab479fd0",
+  measurementId: "G-84DLRYS2X4"
+};
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const params = [
+  "control","speed","technique","ballPower","handCatch","feint",
+  "passcut","defensecut","spinControl","stamina","agility","reflexes",
+  "catching","aggressiveness","conditionStability","vision","thinking",
+  "teamwork","tacticalUnderstanding","attackAwareness","defenseAwareness",
+  "pressureResistance","positioning"
+];
+const paramLabels = [
+  "コントロール","球速","テクニック","球威","ハンドキャッチ","フェイント",
+  "パスカット","ディフェンスカット","スピンコントロール","スタミナ","俊敏性","反射神経",
+  "キャッチング","積極性","コンディション安定","視野","思考力",
+  "連携力","戦術理解","攻撃意識","守備意識","プレッシャー耐性","ポジショニング"
+];
+
+let radarChart;
+
+function updateSlider(el) {
+  const pct = ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1);
+  el.style.setProperty('--fill', pct + '%');
+  const valEl = document.getElementById(el.id + 'Val');
+  if (valEl) valEl.textContent = el.value;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  params.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) updateSlider(el);
+  });
+  initRadarChart();
+  loadPlayers();
+  updateAll();
+});
+
+function getRankLabel(score){
+  if(score>=95) return 'SS';
+  if(score>=85) return 'S';
+  if(score>=70) return 'A';
+  if(score>=45) return 'B';
+  return 'C';
+}
+
+function updateAll(){
+  const values = params.map(id => parseInt(document.getElementById(id).value));
+  const total = values.reduce((a,b)=>a+b,0);
+  document.getElementById("totalScore").textContent = total;
+  params.forEach((id,i) => {
+    const el = document.getElementById(`${id}Rank`);
+    const r = getRankLabel(values[i]);
+    el.textContent = r;
+    el.className = `rank-badge rank-${r}`;
+  });
+  const rank = document.getElementById("rank");
+  if(total>=1600) rank.textContent='SS';
+  else if(total>=1450) rank.textContent='S';
+  else if(total>=1150) rank.textContent='A';
+  else if(total>=700) rank.textContent='B';
+  else rank.textContent='C';
+  radarChart.data.datasets[0].data = values;
+  radarChart.update();
+}
+
+function savePlayer(){
+  const name = document.getElementById("playerName").value;
+  const age = document.getElementById("playerAge").value;
+  if(!name) return alert("名前を入力してください");
+  const data = {
+    age, scores:{},
+    playStyleSelect: document.getElementById("playStyleSelect").value,
+    playStyle: document.getElementById("playStyle").value,
+    extraInfo: document.getElementById("extraInfo").value,
+    mainPosition: document.getElementById("mainPosition").value,
+    subPosition: document.getElementById("subPosition").value
+  };
+  params.forEach(id => data.scores[id] = document.getElementById(id).value);
+  db.ref("players/"+name).set(data, err => {
+    if(err) alert("保存に失敗しました");
+    else { alert("保存しました"); loadPlayers(); }
+  });
+}
+
+function loadPlayers(){
+  db.ref("players").once("value", snap => {
+    const players = snap.val() || {};
+    const list = document.getElementById("playerList");
+    list.innerHTML = '<option value="">— 選手を選択 —</option>';
+    Object.keys(players).forEach(name => {
+      list.innerHTML += `<option value="${name}">${name}</option>`;
+    });
+  });
+}
+
+function selectPlayer(){
+  const name = document.getElementById("playerList").value;
+  if(!name) return;
+  db.ref("players/"+name).once("value", snap => {
+    const p = snap.val();
+    if(!p) return;
+    document.getElementById("playerName").value = name;
+    document.getElementById("playerAge").value = p.age || "";
+    document.getElementById("playStyleSelect").value = p.playStyleSelect || "";
+    document.getElementById("playStyle").value = p.playStyle || "";
+    document.getElementById("extraInfo").value = p.extraInfo || "";
+    document.getElementById("mainPosition").value = p.mainPosition || "";
+    document.getElementById("subPosition").value = p.subPosition || "";
+    params.forEach(id => {
+      const el = document.getElementById(id);
+      el.value = p.scores[id];
+      updateSlider(el);
+    });
+    updateAll();
+  });
+}
+
+function initRadarChart(){
+  const ctx = document.getElementById("radarChart").getContext("2d");
+  radarChart = new Chart(ctx, {
+    type: "radar",
+    data: {
+      labels: paramLabels,
+      datasets: [{
+        label: "選手の能力",
+        data: Array(23).fill(50),
+        fill: true,
+        borderColor: "#ffd700",
+        backgroundColor: "rgba(255,215,0,0.07)",
+        pointBackgroundColor: "#ffd700",
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          min:0, max:100,
+          ticks:{ stepSize:20, color:"#8a7050", font:{size:10}, backdropColor:"transparent" },
+          grid:{ color:"rgba(255,215,0,0.08)" },
+          angleLines:{ color:"rgba(255,215,0,0.08)" },
+          pointLabels:{ color:"#8a7050", font:{size:11} }
+        }
+      },
+      plugins:{ legend:{display:false} },
+      animation:{ duration:300 }
+    }
+  });
+}
+</script>
+</body>
+</html>

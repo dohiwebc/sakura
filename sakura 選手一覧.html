@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>選手一覧</title>
+
+
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 95%;
+      max-width: 1200px;
+      margin: 20px auto;
+    }
+
+    th,
+    td {
+      border: 1px solid #aaa;
+      padding: 6px 10px;
+      text-align: center;
+      user-select: none;
+    }
+
+    th {
+      background-color: #f0f0f0;
+      cursor: pointer;
+      position: relative;
+    }
+
+
+    th.sorted-asc::after {
+      content: "▲";
+      position: absolute;
+      right: 8px;
+      font-size: 12px;
+    }
+
+    th.sorted-desc::after {
+      content: "▼";
+      position: absolute;
+      right: 8px;
+      font-size: 12px;
+    }
+
+    tbody tr:hover {
+      background-color: #eef;
+    }
+
+    body {
+      font-family: "Yu Gothic", sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background-color: #fffcdb;
+    }
+    .container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .section {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .left {
+      flex: 1;
+      padding: 10px;
+    }
+    .right {
+      flex: 1;
+      padding: 10px;
+      margin-left: 20px;
+    }
+    .rating-table {
+      width: 100%;
+      text-align: left;
+      font-size: 18px;
+    }
+    .rating-table td {
+      padding: 5px;
+    }
+    .rank-display {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .small-text {
+      font-size: 12px;
+    }
+    #hamburger {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1001;
+  background: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.2);
+}
+
+#sideMenu a {
+  color: #333;
+  text-decoration: none;
+  display: block;
+  padding: 8px 0;
+}
+
+#sideMenu a:hover {
+  background-color: #ddd;
+}
+  </style>
+</head>
+
+<body>
+  <h1>ドッジボール選手一覧</h1>
+  <table id="playerTable">
+    <thead>
+      <tr>
+        <th data-key="name">選手名</th>
+        <th data-key="control">コントロール</th>
+        <th data-key="speed">球速</th>
+        <th data-key="technique">テクニック</th>
+        <th data-key="ballPower">球威</th>
+        <th data-key="handCatch">ハンドキャッチ</th>
+        <th data-key="feint">フェイント</th>
+        <th data-key="passcut">パスカット</th>
+        <th data-key="defensecut">ディフェンスカット</th>
+        <th data-key="spinControl">スピンコントロール</th>
+        <th data-key="stamina">スタミナ</th>
+        <th data-key="agility">俊敏性</th>
+        <th data-key="reflexes">反射神経</th>
+        <th data-key="catching">キャッチング</th>
+        <th data-key="aggressiveness">積極性</th>
+        <th data-key="conditionStability">コンディション安定</th>
+        <th data-key="vision">視野</th>
+        <th data-key="thinking">思考力</th>
+        <th data-key="teamwork">連携力</th>
+        <th data-key="tacticalUnderstanding">戦術理解</th>
+        <th data-key="attackAwareness">攻撃意識</th>
+        <th data-key="defenseAwareness">守備意識</th>
+        <th data-key="pressureResistance">プレッシャー耐性</th>
+        <th data-key="positioning">ポジショニング</th>
+        <th data-key="totalScore">合計点</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- データここに挿入 -->
+    </tbody>
+  </table>
+
+<!-- ハンバーガーメニューのアイコン -->
+<div id="hamburger" style="cursor:pointer; font-size: 24px; user-select: none;">
+  &#9776; <!-- 三本線の記号 -->
+</div>
+
+
+<!-- サイドメニュー -->
+<div id="sideMenu" style="display:none; position:fixed; top:0; left:0; width:200px; height:100vh; background:#eee; padding:20px; box-shadow: 2px 0 5px rgba(0,0,0,0.2);">
+  <nav>
+    <ul style="list-style:none; padding:0;">
+      <li><a href="https://huuka1419.stars.ne.jp/testindex.html">能力評価ページ</a></li>
+      <li><a href="sakura選手一覧.html">選手一覧ページ</a></li>
+    </ul>
+  </nav>
+</div>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
+    authDomain: "dodge-player-7a5ff.firebaseapp.com",
+    databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "dodge-player-7a5ff",
+    storageBucket: "dodge-player-7a5ff.appspot.com",
+    messagingSenderId: "752106851441",
+    appId: "1:752106851441:web:7081da0e058980ab479fd0"
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+  const hamburger = document.getElementById('hamburger');
+  const sideMenu = document.getElementById('sideMenu');
+
+  if (hamburger && sideMenu) {
+    hamburger.addEventListener('click', () => {
+      if (sideMenu.style.display === 'block') {
+        sideMenu.style.display = 'none';
+      } else {
+        sideMenu.style.display = 'block';
+      }
+    });
+  }
+});
+
+
+  const app = initializeApp(firebaseConfig);
+  const database = getDatabase(app);
+  const playersRef = ref(database, 'players');
+
+  
+
+
+    const tbody = document.querySelector("#playerTable tbody");
+    let players = [];
+    let currentSortKey = "name"; // 初期は名前昇順
+    let currentSortAsc = true;
+
+    function fetchPlayers() {
+  const db = getDatabase();
+  const playersRef = ref(db, "players");
+
+  onValue(playersRef, (snapshot) => {
+    const data = snapshot.val(); // ← この行が必須！
+
+    if (data) {
+      players = Object.entries(data).map(([name, player]) => {
+        const scores = player.scores || {};
+
+        const newPlayer = {
+          name,
+          ...player,
+          ...scores
+        };
+
+        const abilityKeys = [
+          "control", "speed", "technique", "ballPower", "handCatch", "feint", "passcut",
+          "defensecut", "spinControl", "stamina", "agility", "reflexes", "catching",
+          "aggressiveness", "conditionStability", "vision", "thinking", "teamwork",
+          "tacticalUnderstanding", "attackAwareness", "defenseAwareness", "pressureResistance",
+          "positioning"
+        ];
+
+        abilityKeys.forEach(key => {
+          if (newPlayer[key] !== undefined) {
+            newPlayer[key] = Number(newPlayer[key]);
+          }
+        });
+
+        return newPlayer;
+      });
+
+      // 初期表示（名前順）
+      sortAndRender(currentSortKey, currentSortAsc);
+    } else {
+      renderTable([]); // データがなかった場合
+    }
+  });
+}
+
+onValue(playersRef, (snapshot) => {
+  const data = snapshot.val();
+
+  if (data) {
+    players = Object.entries(data).map(([name, player]) => {
+      const scores = player.scores || {};
+
+      const newPlayer = {
+        name,
+        ...player,
+        ...scores
+      };
+
+      const abilityKeys = [
+        "control", "speed", "technique", "ballPower", "handCatch", "feint", "passcut",
+        "defensecut", "spinControl", "stamina", "agility", "reflexes", "catching",
+        "aggressiveness", "conditionStability", "vision", "thinking", "teamwork",
+        "tacticalUnderstanding", "attackAwareness", "defenseAwareness", "pressureResistance",
+        "positioning"
+      ];
+
+      // 各能力値を数値化
+      abilityKeys.forEach(key => {
+        newPlayer[key] = Number(newPlayer[key]) || 0;
+      });
+
+      // 合計点を計算して totalScore にセット
+      newPlayer.totalScore = abilityKeys.reduce((sum, key) => sum + newPlayer[key], 0);
+
+      return newPlayer;
+    });
+
+    // 初期ソート＆描画
+    sortAndRender(currentSortKey, currentSortAsc);
+
+  } else {
+    players = [];
+    renderTable(players);
+  }
+});
+
+
+    // ソート関数（文字列も数値も対応）
+    function sortPlayers(data, key, asc) {
+      return data.slice().sort((a, b) => {
+        if (a[key] === undefined || b[key] === undefined) return 0;
+
+        // 名前は文字列、それ以外は数値としてソート
+        if (key === "name") {
+          return asc ? a[key].localeCompare(b[key]) : b[key].localeCompare(a[key]);
+        } else {
+          return asc ? a[key] - b[key] : b[key] - a[key];
+        }
+      });
+    }
+
+    // テーブル描画関数
+    function renderTable(data) {
+  tbody.innerHTML = "";
+  data.forEach(player => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${player.name || ""}</td>
+      <td>${player.control ?? ""}</td>
+      <td>${player.speed ?? ""}</td>
+      <td>${player.technique ?? ""}</td>
+      <td>${player.ballPower ?? ""}</td>
+      <td>${player.handCatch ?? ""}</td>
+      <td>${player.feint ?? ""}</td>
+      <td>${player.passcut ?? ""}</td>
+      <td>${player.defensecut ?? ""}</td>
+      <td>${player.spinControl ?? ""}</td>
+      <td>${player.stamina ?? ""}</td>
+      <td>${player.agility ?? ""}</td>
+      <td>${player.reflexes ?? ""}</td>
+      <td>${player.catching ?? ""}</td>
+      <td>${player.aggressiveness ?? ""}</td>
+      <td>${player.conditionStability ?? ""}</td>
+      <td>${player.vision ?? ""}</td>
+      <td>${player.thinking ?? ""}</td>
+      <td>${player.teamwork ?? ""}</td>
+      <td>${player.tacticalUnderstanding ?? ""}</td>
+      <td>${player.attackAwareness ?? ""}</td>
+      <td>${player.defenseAwareness ?? ""}</td>
+      <td>${player.pressureResistance ?? ""}</td>
+      <td>${player.positioning ?? ""}</td>
+      <td>${player.totalScore ?? 0}</td>  
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+    // ソート実行＆描画＆ヘッダー矢印更新
+    function sortAndRender(key, asc) {
+      const sorted = sortPlayers(players, key, asc);
+      renderTable(sorted);
+      updateSortIndicators(key, asc);
+    }
+
+    // ソート矢印の表示更新
+    function updateSortIndicators(sortedKey, asc) {
+      document.querySelectorAll("th").forEach(th => {
+        th.classList.remove("sorted-asc", "sorted-desc");
+        if (th.dataset.key === sortedKey) {
+          th.classList.add(asc ? "sorted-asc" : "sorted-desc");
+        }
+      });
+    }
+
+   document.querySelectorAll("#playerTable thead th").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.key;
+    if (!key || key === "name") return; // ←ここで名前だけ弾く
+
+    if (currentSortKey === key) {
+      currentSortAsc = !currentSortAsc;
+    } else {
+      currentSortKey = key;
+      currentSortAsc = true;
+    }
+    sortAndRender(currentSortKey, currentSortAsc);
+  });
+});
+
+
+
+players = Object.entries(data).map(([name, player]) => {
+  const scores = player.scores || {};
+  const newPlayer = {
+    name,
+    ...player,
+    ...scores
+  };
+  // scores内の値を数値に変換
+  Object.keys(scores).forEach(key => {
+    newPlayer[key] = Number(scores[key]);
+  });
+
+  // 合計点を計算（数値の能力値だけ足す）
+  const abilityKeys = [
+    "control", "speed", "technique", "ballPower", "handCatch", "feint", "passcut",
+    "defensecut", "spinControl", "stamina", "agility", "reflexes", "catching",
+    "aggressiveness", "conditionStability", "vision", "thinking", "teamwork",
+    "tacticalUnderstanding", "attackAwareness", "defenseAwareness", "pressureResistance",
+    "positioning"
+  ];
+
+  newPlayer.total = abilityKeys.reduce((sum, key) => sum + (newPlayer[key] || 0), 0);
+
+  return newPlayer;
+});
+
+const rowHtml = `
+<tr>
+  <td>${player.name || ""}</td>
+  <td>${player.control ?? ""}</td>
+  <!-- 省略 -->
+  <td>${player.positioning ?? ""}</td>
+  <td>${player.totalScore ?? 0}</td>
+</tr>
+`;
+
+    fetchPlayers();
+
+
+const hamburger = document.getElementById('hamburger');
+const sideMenu = document.getElementById('sideMenu');
+
+hamburger.addEventListener('click', () => {
+  if (!sideMenu) return;
+
+  if (sideMenu.style.display === 'block') {
+    sideMenu.style.display = 'none';
+  } else {
+    sideMenu.style.display = 'block';
+  }
+});
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Teko:wght@400;600;700&display=swap" rel="stylesheet">
+   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>Dodgeball Tactics - Professional</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="header-controls">
+        <h1>DODGEBALL TACTICS</h1>
+        
+        <div id="team-stats" class="team-stats">
+            <div class="stat-item">
+                <span class="stat-label">人数:</span>
+                <span id="on-court-count">0</span><span class="max-count">/ 8人</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">合計スコア:</span>
+                <span id="total-team-score">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">チームランク:</span>
+                <span id="team-rank-display" class="team-rank">-</span>
+            </div>
+            
+        </div>
+
+        <div class="mode-switches">
+            <button onclick="switchMode('offense')" id="btn-offense" class="active">攻撃陣形</button>
+            <button onclick="switchMode('defense')" id="btn-defense">守備陣形</button>
+        </div>
+        </div>
+        
+        <div class="tactic-management">
+            <input type="text" id="tactic-name" placeholder="新しい陣形名">
+            <button onclick="saveLayout()" class="save-btn">保存</button>
+            <button onclick="resetCurrentLayout()" style="background: #a72828;">配置リセット</button>
+            <span style="color: #666; margin: 0 10px;">|</span>
+            <select id="tactic-list"><option value="">-- 保存済みを選択 --</option></select>
+            <button onclick="loadSelectedLayout()" style="background: #3e8bff;">読み込み</button>
+            <button onclick="deleteSelectedLayout()" style="background: #666;">削除</button>
+        </div>
+    
+
+    <div class="canvas-container">
+        <div class="court-image-wrapper" id="court">
+            <img src="コート.jpeg" alt="Tactics Board" class="base-image">
+        </div>
+    </div>
+
+    <div class="player-pool-container">
+    <div class="bench-header">
+        <h3>選手</h3>
+        <div class="bench-controls">
+            <input type="text" id="player-search" placeholder="検索..." oninput="renderAll()">
+            <div class="sort-controls">
+                <button onclick="sortPlayers('rank')">ランク順</button>
+                <button onclick="sortPlayers('pos')">ポジション順</button>
+            </div>
+        </div>
+    </div>
+    <div id="player-pool" class="player-pool"></div>
+</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
+            authDomain: "dodge-player-7a5ff.firebaseapp.com",
+            databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "dodge-player-7a5ff",
+            storageBucket: "dodge-player-7a5ff.firebasestorage.app",
+            messagingSenderId: "752106851441",
+            appId: "1:752106851441:web:7081da0e058980ab479fd0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        window.db = db;
+        window.dbRefs = { ref, onValue, set, get };
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

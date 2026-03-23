@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大会結果一覧 | さくらGroup</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto+Slab:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
+  authDomain: "dodge-player-7a5ff.firebaseapp.com",
+  databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dodge-player-7a5ff",
+  storageBucket: "dodge-player-7a5ff.firebasestorage.app",
+  messagingSenderId: "752106851441",
+  appId: "1:752106851441:web:7081da0e058980ab479fd0",
+  measurementId: "G-84DLRYS2X4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ──── インスタ画像生成 ────────────────────────────
+function createInstagramImage(data) {
+  const { year, tournamentName, category, teamA, teamB, scoreA, scoreB } = data;
+  const result = scoreA > scoreB ? "WIN" : scoreA < scoreB ? "LOSE" : "DRAW";
+  const canvas = document.createElement("canvas");
+  const size = 1080;
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, "#07070f");
+  grad.addColorStop(1, "#111120");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.strokeStyle = "#ffd700";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(36, 36, size - 72, size - 72);
+
+  ctx.textAlign = "center";
+  let y = 140;
+
+  ctx.fillStyle = "#888";
+  ctx.font = "48px 'Cinzel', serif";
+  ctx.fillText(year, size / 2, y); y += 76;
+
+  ctx.fillStyle = "#ede0c4";
+  ctx.font = "58px 'Cinzel', serif";
+  ctx.fillText(tournamentName, size / 2, y); y += 86;
+
+  ctx.fillStyle = "#d4af37";
+  ctx.font = "42px 'Roboto Slab', serif";
+  ctx.fillText(category, size / 2, y); y += 88;
+
+  ctx.fillStyle = "#f0e0c0";
+  ctx.font = "52px 'Roboto Slab', serif";
+  const teamText = `${teamA}  vs  ${teamB}`;
+  let fs = 52;
+  while (ctx.measureText(teamText).width > size - 100 && fs > 28) {
+    fs -= 1; ctx.font = `${fs}px 'Roboto Slab', serif`;
+  }
+  ctx.fillText(teamText, size / 2, y); y += 100;
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "88px 'Cinzel', serif";
+  ctx.fillText(`${scoreA} - ${scoreB}`, size / 2, y); y += 120;
+
+  ctx.font = "120px 'Cinzel', serif";
+  ctx.fillStyle = result === "WIN" ? "#7fe27f" : result === "LOSE" ? "#e06060" : "#8888aa";
+  ctx.fillText(result, size / 2, y);
+
+  const link = document.createElement("a");
+  link.download = `${teamA}_vs_${teamB}_${tournamentName}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+// ──── 試合データ読込 ──────────────────────────────
+async function loadMatches() {
+  const dbRef = ref(db);
+  const container = document.getElementById("resultsContainer");
+  container.innerHTML = '<div class="loading-msg">読み込み中…</div>';
+
+  try {
+    const snapshot = await get(child(dbRef, "matches"));
+    if (!snapshot.exists()) { container.textContent = "データが存在しません。"; return; }
+
+    const matchesData = snapshot.val();
+    container.innerHTML = "";
+
+    const years = {};
+    for (const id in matchesData) {
+      const m = matchesData[id];
+      const y = m.year || "未分類";
+      if (!years[y]) years[y] = [];
+      years[y].push(m);
+    }
+
+    Object.keys(years).sort((a, b) => parseInt(b) - parseInt(a)).forEach(year => {
+      const yBtn = makeAccBtn(year);
+      yBtn.dataset.watermark = year;
+      container.appendChild(yBtn);
+      const yPanel = makePanel();
+      container.appendChild(yPanel);
+
+      const tournaments = {};
+      years[year].forEach(m => {
+        const t = m.tournamentName || "未分類大会";
+        if (!tournaments[t]) tournaments[t] = [];
+        tournaments[t].push(m);
+      });
+
+      for (const tournament in tournaments) {
+        const tBtn = makeAccBtn(tournament);
+        yPanel.appendChild(tBtn);
+        const tPanel = makePanel();
+        yPanel.appendChild(tPanel);
+
+        const categories = {};
+        tournaments[tournament].forEach(m => {
+          const c = m.category || "未分類";
+          if (!categories[c]) categories[c] = [];
+          categories[c].push(m);
+        });
+
+        for (const category in categories) {
+          const cBtn = makeAccBtn(`カテゴリー：${category}`);
+          tPanel.appendChild(cBtn);
+          const cPanel = makePanel();
+          tPanel.appendChild(cPanel);
+
+          const matchTypes = { "予選": [], "トーナメント": [] };
+          categories[category].forEach(m => {
+            const t = m.type || "予選";
+            if (!matchTypes[t]) matchTypes[t] = [];
+            matchTypes[t].push(m);
+          });
+
+          for (const type in matchTypes) {
+            if (matchTypes[type].length === 0) continue;
+            const mBtn = makeAccBtn(type);
+            cPanel.appendChild(mBtn);
+            const mPanel = makePanel();
+            cPanel.appendChild(mPanel);
+
+            matchTypes[type].forEach(match => {
+              const card = buildCard(match, type);
+              mPanel.appendChild(card);
+            });
+          }
+        }
+      }
+    });
+
+    setupAccordion();
+  } catch (e) {
+    console.error(e);
+    container.textContent = "読み込みエラーが発生しました。";
+  }
+}
+
+function makeAccBtn(text) {
+  const b = document.createElement("button");
+  b.classList.add("acc-btn");
+  b.textContent = text;
+  return b;
+}
+
+function makePanel() {
+  const d = document.createElement("div");
+  d.classList.add("acc-panel");
+  return d;
+}
+
+function buildCard(match, type) {
+  let totalA = 0, totalB = 0;
+  const setsArr = match.sets ? Object.values(match.sets) : [];
+  setsArr.forEach(s => {
+    let a = parseInt(s.scoreA), b = parseInt(s.scoreB);
+    if (s.vpgA !== undefined && s.vpgB !== undefined && (parseInt(s.vpgA) !== 0 || parseInt(s.vpgB) !== 0)) {
+      a = parseInt(s.vpgA); b = parseInt(s.vpgB);
+    }
+    totalA += a; totalB += b;
+  });
+
+  let status = "未判定";
+  if (setsArr.length > 0) {
+    if (totalA > totalB) status = "勝利";
+    else if (totalB > totalA) status = "敗北";
+    else status = "引き分け";
+  }
+
+  const card = document.createElement("div");
+  card.classList.add("match-card");
+  if (status === "勝利") card.classList.add("win-card");
+
+  const badge = document.createElement("div");
+  const badgeClass = status === "勝利" ? "win" : status === "敗北" ? "lose" : "draw";
+  badge.classList.add("match-badge", badgeClass);
+  badge.textContent = `${status} · ${type}`;
+  card.appendChild(badge);
+
+  const teams = document.createElement("div");
+  teams.classList.add("match-teams");
+  teams.textContent = `${match.teamA} vs ${match.teamB}`;
+  card.appendChild(teams);
+
+  const score = document.createElement("div");
+  score.classList.add("match-score");
+  setsArr.forEach((s, i) => {
+    const vpgText = (s.vpgA !== undefined && s.vpgB !== undefined && (parseInt(s.vpgA) !== 0 || parseInt(s.vpgB) !== 0))
+      ? ` (VPG: ${s.vpgA}–${s.vpgB})` : "";
+    const line = document.createElement("div");
+    line.textContent = `${i + 1}set　${s.scoreA} – ${s.scoreB}${vpgText}`;
+    score.appendChild(line);
+  });
+  card.appendChild(score);
+
+  const winner = document.createElement("div");
+  winner.classList.add("match-winner");
+  winner.textContent = `勝者：${totalA > totalB ? match.teamA : totalB > totalA ? match.teamB : "引き分け"}`;
+  card.appendChild(winner);
+
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "📸";
+  saveBtn.classList.add("save-btn");
+  saveBtn.addEventListener("click", () => {
+    createInstagramImage({ year: match.year, tournamentName: match.tournamentName, category: match.category, teamA: match.teamA, teamB: match.teamB, scoreA: totalA, scoreB: totalB });
+  });
+  card.appendChild(saveBtn);
+
+  return card;
+}
+
+function setupAccordion() {
+  document.querySelectorAll(".acc-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      this.classList.toggle("open");
+      const panel = this.nextElementSibling;
+      panel.classList.toggle("open");
+    });
+  });
+}
+
+window.onload = loadMatches;
+</script>
+<style>
+:root{
+  --bg:#07070f;--bg2:#0c0c18;
+  --gold:#ffd700;--gold2:#d4af37;--gold3:#b8860b;
+  --gdim:rgba(255,215,0,.1);--gglow:rgba(255,215,0,.28);
+  --glass:rgba(255,255,255,.03);--gborder:rgba(255,215,0,.12);
+  --text:#ede0c4;--text2:#8a7050;
+  --serif:'Cinzel',serif;--slab:'Roboto Slab',serif;--sans:'Noto Sans JP',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px;}
+
+/* noise overlay */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.025;
+}
+
+header{
+  padding:20px 40px;text-align:center;
+  background:rgba(7,7,15,.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--gborder);position:sticky;top:0;z-index:100;
+}
+.header-back{
+  position:absolute;left:20px;top:50%;transform:translateY(-50%);
+  font-family:var(--slab);font-size:11px;letter-spacing:2px;
+  color:var(--text2);text-decoration:none;text-transform:uppercase;transition:.25s;
+}
+.header-back:hover{color:var(--gold);}
+header h1{
+  font-family:var(--serif);font-size:22px;font-weight:900;letter-spacing:5px;
+  background:linear-gradient(135deg,#ffe080,#ffd700);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.header-sub{font-family:var(--slab);font-size:10px;letter-spacing:5px;color:var(--text2);margin-top:4px;text-transform:uppercase;}
+
+main{max-width:860px;margin:0 auto;padding:40px 20px;position:relative;z-index:1;}
+.page-title{
+  font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:3px;
+  color:var(--gold);margin-bottom:32px;padding-bottom:14px;
+  border-bottom:1px solid var(--gborder);text-align:center;
+}
+
+/* ─── ACCORDION (max-height transition) ─── */
+.acc-btn{
+  width:100%;padding:16px 22px;
+  background:var(--glass);border:1px solid var(--gborder);
+  color:var(--text);font-family:var(--slab);font-size:15px;font-weight:700;
+  text-align:left;cursor:pointer;transition:.3s;border-radius:8px;
+  margin-top:10px;letter-spacing:.5px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;overflow:hidden;
+}
+.acc-btn::after{content:'+';color:var(--gold);font-size:18px;font-weight:300;transition:.3s;flex-shrink:0;}
+.acc-btn.open{background:rgba(255,215,0,.07);color:var(--gold);border-color:rgba(255,215,0,.22);}
+.acc-btn.open::after{content:'−';}
+.acc-btn:hover{border-color:rgba(255,215,0,.2);}
+
+/* year watermark */
+.acc-btn[data-watermark]::before{
+  content:attr(data-watermark);
+  position:absolute;right:52px;top:50%;transform:translateY(-50%);
+  font-family:var(--serif);font-size:72px;font-weight:900;
+  color:rgba(255,215,0,.06);line-height:1;pointer-events:none;
+  letter-spacing:-2px;
+}
+
+.acc-panel{
+  max-height:0;overflow:hidden;
+  transition:max-height .45s cubic-bezier(.4,0,.2,1);
+  padding-left:16px;margin-left:8px;
+  border-left:1px solid transparent;
+}
+.acc-panel.open{
+  max-height:4000px;
+  border-left-color:var(--gborder);
+  margin-bottom:8px;
+}
+
+/* ─── SHIMMER ─── */
+@keyframes shimmer{
+  0%{transform:translateX(-100%) skewX(-12deg);}
+  100%{transform:translateX(250%) skewX(-12deg);}
+}
+
+/* ─── MATCH CARD ─── */
+.match-card{
+  position:relative;
+  background:var(--glass);border:1px solid var(--gborder);border-radius:10px;
+  padding:48px 16px 16px;margin:12px 0;
+  transition:.3s;overflow:hidden;
+}
+.match-card:hover{border-color:rgba(255,215,0,.2);box-shadow:0 0 24px rgba(255,215,0,.05);}
+
+/* shimmer on win cards */
+.win-card::after{
+  content:'';
+  position:absolute;top:0;left:0;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,215,0,.12),transparent);
+  animation:shimmer 3.5s ease-in-out infinite;
+  pointer-events:none;
+}
+
+.match-badge{
+  position:absolute;top:12px;left:14px;
+  font-family:var(--slab);font-size:12px;font-weight:700;letter-spacing:1px;
+  padding:4px 12px;border-radius:3px;text-transform:uppercase;
+}
+.match-badge.win{background:linear-gradient(90deg,#b8860b,#ffd700);color:#07070f;}
+.match-badge.lose{background:rgba(80,60,60,.8);color:#aaa;}
+.match-badge.draw{background:rgba(60,60,90,.8);color:#9090cc;}
+
+.match-teams{text-align:center;font-size:17px;font-weight:700;color:var(--text);letter-spacing:.5px;margin-bottom:8px;}
+.match-score{text-align:center;font-family:var(--slab);font-size:14px;color:var(--text2);line-height:1.9;}
+.match-winner{text-align:center;margin-top:8px;font-family:var(--serif);font-size:14px;letter-spacing:1px;color:var(--gold);}
+.save-btn{
+  position:absolute;right:12px;bottom:12px;
+  width:38px;height:38px;border:none;border-radius:50%;
+  background:rgba(255,215,0,.15);border:1px solid var(--gborder);
+  color:var(--gold);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  transition:.3s;
+}
+.save-btn:hover{background:var(--gold);border-color:var(--gold);}
+
+.loading-msg{text-align:center;color:var(--text2);font-family:var(--slab);font-size:14px;letter-spacing:2px;padding:60px 0;}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html" class="header-back">← トップ</a>
+  <h1>さくらGroup</h1>
+  <div class="header-sub">Match Results</div>
+</header>
+<main>
+  <div class="page-title">大会結果一覧</div>
+  <div id="resultsContainer"></div>
+</main>
+</body>
+</html>

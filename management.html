@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>さくらGroup 大会管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto+Slab:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070f;--bg2:#0c0c18;--bg3:#111120;
+  --gold:#ffd700;--gold2:#d4af37;--gold3:#b8860b;
+  --gdim:rgba(255,215,0,.1);--gglow:rgba(255,215,0,.3);
+  --glass:rgba(255,255,255,.03);--gborder:rgba(255,215,0,.12);
+  --text:#ede0c4;--text2:#8a7050;
+  --serif:'Cinzel',serif;--slab:'Roboto Slab',serif;--sans:'Noto Sans JP',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* noise overlay */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.025;
+}
+
+header{
+  padding:20px 40px;text-align:center;
+  background:rgba(7,7,15,.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--gborder);position:sticky;top:0;z-index:100;
+}
+header h1{
+  font-family:var(--serif);font-size:22px;font-weight:900;letter-spacing:5px;
+  background:linear-gradient(135deg,#ffe080,#ffd700);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.header-sub{font-family:var(--slab);font-size:10px;letter-spacing:5px;color:var(--text2);margin-top:4px;text-transform:uppercase;}
+
+.header-back{
+  position:absolute;left:20px;top:50%;transform:translateY(-50%);
+  font-family:var(--slab);font-size:11px;letter-spacing:2px;
+  color:var(--text2);text-decoration:none;text-transform:uppercase;transition:.25s;
+}
+.header-back:hover{color:var(--gold);}
+
+/* ─── TABS ─── */
+nav{
+  display:flex;justify-content:center;
+  border-bottom:1px solid var(--gborder);
+  background:var(--bg2);
+  position:relative;z-index:1;
+}
+nav button{
+  background:none;color:var(--text2);border:none;
+  padding:16px 32px;font-family:var(--slab);font-size:14px;font-weight:400;
+  cursor:pointer;transition:.3s;letter-spacing:1px;position:relative;
+}
+nav button::after{
+  content:'';position:absolute;bottom:0;left:50%;right:50%;
+  height:2px;background:var(--gold);transition:.35s cubic-bezier(.4,0,.2,1);
+}
+nav button.active{color:var(--gold);font-weight:700;}
+nav button.active::after{left:0;right:0;}
+nav button:hover{color:var(--text);}
+
+section{display:none;padding:40px 24px;max-width:720px;margin:0 auto;position:relative;z-index:1;}
+section.active{display:block;}
+.sec-title{
+  font-family:var(--serif);font-size:20px;font-weight:700;letter-spacing:3px;
+  color:var(--gold);margin-bottom:28px;padding-bottom:12px;
+  border-bottom:1px solid var(--gborder);
+}
+
+/* ─── FLOATING LABEL FORM ─── */
+.form-group{margin-bottom:28px;}
+.form-group.floating{position:relative;padding-top:20px;}
+
+/* standard label (non-floating) */
+.form-label{
+  display:block;font-family:var(--slab);font-size:12px;
+  letter-spacing:3px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;
+}
+
+/* floating label */
+.floating .form-label{
+  position:absolute;top:20px;left:0;
+  font-size:12px;letter-spacing:3px;color:var(--text2);
+  transition:.25s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;margin:0;text-transform:uppercase;
+}
+.floating input:focus ~ .form-label,
+.floating input:not(:placeholder-shown) ~ .form-label {
+  top:0;font-size:9px;color:var(--gold);letter-spacing:4px;
+}
+
+input[type="text"],select{
+  width:100%;padding:12px 0;
+  background:transparent;
+  border:none;border-bottom:1px solid var(--gborder);
+  color:var(--text);font-family:var(--slab);font-size:15px;
+  outline:none;transition:.3s;
+  -webkit-appearance:none;appearance:none;
+}
+input[type="text"]:focus,select:focus{
+  border-bottom-color:var(--gold);
+}
+input[type="text"]::placeholder{color:transparent;}
+select::placeholder{color:var(--text2);}
+select option{background:var(--bg2);color:var(--text);}
+
+.radio-group{display:flex;gap:24px;align-items:center;}
+.radio-label{display:flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--slab);font-size:14px;color:var(--text2);}
+input[type="radio"]{
+  appearance:none;-webkit-appearance:none;
+  width:16px;height:16px;border:1px solid var(--gborder);
+  border-radius:50%;cursor:pointer;transition:.3s;flex-shrink:0;
+}
+input[type="radio"]:checked{border-color:var(--gold);background:var(--gold);box-shadow:0 0 8px var(--gglow);}
+
+.btn-save{
+  display:inline-block;padding:12px 28px;margin:16px 0;
+  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  color:#07070f;font-family:var(--slab);font-size:13px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;border:none;border-radius:3px;
+  cursor:pointer;transition:.3s;
+}
+.btn-save:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--gglow);filter:brightness(1.08);}
+
+/* ─── SCOREBOARD-STYLE SET BOX ─── */
+.setBox{
+  margin-bottom:14px;
+  background:var(--glass);border:1px solid var(--gborder);border-radius:10px;
+  overflow:hidden;
+}
+.set-label{
+  font-family:var(--serif);font-size:11px;letter-spacing:4px;color:var(--text2);
+  text-transform:uppercase;padding:10px 18px;
+  background:rgba(255,215,0,.04);border-bottom:1px solid var(--gborder);
+}
+.setRow,.vpgRow{
+  display:flex;align-items:center;padding:14px 18px;
+  font-family:var(--slab);font-size:13px;color:var(--text2);
+  gap:0;flex-wrap:wrap;
+}
+.score-team{
+  flex:1;min-width:80px;
+  font-family:var(--slab);font-size:14px;font-weight:700;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.score-team.team-b{text-align:right;}
+.score-sep{
+  font-family:var(--serif);font-size:12px;color:var(--text2);
+  letter-spacing:2px;padding:0 10px;flex-shrink:0;
+}
+.score-input-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+
+select.scoreSelect,select.vpgSelect{
+  width:58px;padding:10px 8px;text-align:center;
+  border:1px solid var(--gborder);border-radius:6px;
+  background:rgba(255,215,0,.08);color:var(--gold);
+  font-family:var(--serif);font-size:20px;font-weight:700;
+  -webkit-appearance:none;appearance:none;outline:none;
+  transition:.3s;
+}
+select.scoreSelect:focus,select.vpgSelect:focus{border-color:var(--gold);background:rgba(255,215,0,.14);}
+.score-vs{
+  font-family:var(--serif);font-size:14px;color:var(--text2);
+  letter-spacing:2px;padding:0 8px;
+}
+
+.vpgRow{
+  background:rgba(255,215,0,.03);border-top:1px solid var(--gborder);
+  font-size:11px;letter-spacing:2px;color:var(--text2);
+}
+.vpgRow .vpg-label{
+  font-family:var(--slab);font-size:10px;letter-spacing:3px;
+  color:var(--text2);text-transform:uppercase;flex:1;
+}
+
+.result-box{
+  padding:16px 20px;background:var(--glass);
+  border:1px solid var(--gborder);border-radius:8px;margin-bottom:20px;
+  font-family:var(--serif);font-size:15px;letter-spacing:2px;color:var(--text2);
+}
+#resultSpan{color:var(--gold);font-weight:700;font-size:18px;}
+.divider{height:1px;background:var(--gborder);margin:32px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="header-back">← トップ</a>
+  <h1>さくらGroup</h1>
+  <div class="header-sub">Tournament Management</div>
+</header>
+
+<nav>
+  <button id="tabTeam" class="active">チーム登録</button>
+  <button id="tabTournament">大会登録</button>
+  <button id="tabMatch">試合登録</button>
+</nav>
+
+<section id="sectionTeam" class="active">
+  <div class="sec-title">チーム登録</div>
+  <div class="form-group floating">
+    <input type="text" id="myTeamInput" placeholder=" ">
+    <label class="form-label">自チーム名</label>
+  </div>
+  <button class="btn-save" id="saveMyTeamBtn">自チーム登録</button>
+  <div class="divider"></div>
+  <div class="form-group floating">
+    <input type="text" id="opponentTeamInput" placeholder=" ">
+    <label class="form-label">敵チーム名</label>
+  </div>
+  <button class="btn-save" id="saveOpponentTeamBtn">敵チーム登録</button>
+</section>
+
+<section id="sectionTournament">
+  <div class="sec-title">大会登録</div>
+  <div class="form-group">
+    <label class="form-label">年度</label>
+    <select id="yearSelectTournament"></select>
+  </div>
+  <div class="form-group floating">
+    <input type="text" id="tournamentInput" placeholder=" ">
+    <label class="form-label">大会名</label>
+  </div>
+  <div class="form-group">
+    <label class="form-label">カテゴリー</label>
+    <select id="categorySelect">
+      <option value="U-15">U-15</option>
+      <option value="U-18">U-18</option>
+      <option value="シニア">シニア</option>
+    </select>
+  </div>
+  <button class="btn-save" id="saveTournamentBtn">大会登録</button>
+</section>
+
+<section id="sectionMatch">
+  <div class="sec-title">試合登録</div>
+  <div class="form-group">
+    <label class="form-label">年度</label>
+    <select id="yearSelectMatch"></select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">大会</label>
+    <select id="tournamentSelectMatch"></select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">カテゴリー</label>
+    <select id="matchCategorySelect">
+      <option value="U-15">U-15</option>
+      <option value="U-18">U-18</option>
+      <option value="シニア">シニア</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">自チーム</label>
+    <select id="teamASelectMatch"></select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">相手チーム</label>
+    <select id="teamBSelectMatch"></select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">試合形式</label>
+    <div class="radio-group">
+      <label class="radio-label"><input type="radio" name="matchType" value="予選" checked>予選</label>
+      <label class="radio-label"><input type="radio" name="matchType" value="トーナメント">トーナメント</label>
+    </div>
+  </div>
+  <div id="setOptions" class="form-group">
+    <label class="form-label">セット数</label>
+    <select id="setCountSelect">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>
+  </div>
+  <div id="setsContainer"></div>
+  <div class="result-box">勝者：<span id="resultSpan">—</span></div>
+  <button class="btn-save" id="saveMatchBtn">試合保存</button>
+</section>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
+  authDomain: "dodge-player-7a5ff.firebaseapp.com",
+  databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dodge-player-7a5ff",
+  storageBucket: "dodge-player-7a5ff.appspot.com",
+  messagingSenderId: "752106851441",
+  appId: "1:752106851441:web:7081da0e058980ab479fd0",
+  measurementId: "G-84DLRYS2X4"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const myTeamInput = document.getElementById('myTeamInput');
+const saveMyTeamBtn = document.getElementById('saveMyTeamBtn');
+const opponentTeamInput = document.getElementById('opponentTeamInput');
+const saveOpponentTeamBtn = document.getElementById('saveOpponentTeamBtn');
+const yearSelectTournament = document.getElementById('yearSelectTournament');
+const tournamentInput = document.getElementById('tournamentInput');
+const categorySelect = document.getElementById('categorySelect');
+const saveTournamentBtn = document.getElementById('saveTournamentBtn');
+const yearSelectMatch = document.getElementById('yearSelectMatch');
+const tournamentSelectMatch = document.getElementById('tournamentSelectMatch');
+const matchCategorySelect = document.getElementById('matchCategorySelect');
+const teamASelectMatch = document.getElementById('teamASelectMatch');
+const teamBSelectMatch = document.getElementById('teamBSelectMatch');
+const setOptions = document.getElementById('setOptions');
+const setCountSelect = document.getElementById('setCountSelect');
+const setsContainer = document.getElementById('setsContainer');
+const resultSpan = document.getElementById('resultSpan');
+const saveMatchBtn = document.getElementById('saveMatchBtn');
+
+const tabs={tabTeam:document.getElementById('tabTeam'),tabTournament:document.getElementById('tabTournament'),tabMatch:document.getElementById('tabMatch')};
+const sections={sectionTeam:document.getElementById('sectionTeam'),sectionTournament:document.getElementById('sectionTournament'),sectionMatch:document.getElementById('sectionMatch')};
+for(let t in tabs){
+  tabs[t].addEventListener('click',()=>{
+    for(let s in sections) sections[s].classList.remove('active');
+    for(let b in tabs) tabs[b].classList.remove('active');
+    sections[t.replace('tab','section')].classList.add('active');
+    tabs[t].classList.add('active');
+    loadTeams(); loadTournaments(); renderSets();
+  });
+}
+
+function fillYearSelect(sel){
+  sel.innerHTML='';
+  for(let y=2022;y<=2030;y++){const opt=document.createElement('option');opt.value=y+'年度';opt.textContent=y+'年度';sel.appendChild(opt);}
+}
+fillYearSelect(yearSelectTournament);
+fillYearSelect(yearSelectMatch);
+
+saveMyTeamBtn.addEventListener('click',()=>{
+  const name=myTeamInput.value.trim();
+  if(!name) return alert('自チーム名を入力してね');
+  const key=db.ref('teams/myTeams').push().key;
+  db.ref(`teams/myTeams/${key}`).set(name).then(()=>{alert('登録完了');myTeamInput.value='';loadTeams();});
+});
+saveOpponentTeamBtn.addEventListener('click',()=>{
+  const name=opponentTeamInput.value.trim();
+  if(!name) return alert('敵チーム名を入力してね');
+  const key=db.ref('teams/opponentTeams').push().key;
+  db.ref(`teams/opponentTeams/${key}`).set(name).then(()=>{alert('登録完了');opponentTeamInput.value='';loadTeams();});
+});
+
+saveTournamentBtn.addEventListener('click',()=>{
+  const year=yearSelectTournament.value,name=tournamentInput.value.trim(),category=categorySelect.value;
+  if(!name) return alert('大会名を入力');
+  const key=db.ref('tournaments').push().key;
+  db.ref(`tournaments/${key}`).set({year,tournamentName:name,category}).then(()=>{alert('大会登録完了');tournamentInput.value='';loadTournaments();});
+});
+
+function loadTeams(){
+  teamASelectMatch.innerHTML='';teamBSelectMatch.innerHTML='';
+  db.ref('teams/myTeams').once('value',snap=>{snap.forEach(s=>{teamASelectMatch.appendChild(new Option(s.val(),s.val()));});});
+  db.ref('teams/opponentTeams').once('value',snap=>{snap.forEach(s=>{teamBSelectMatch.appendChild(new Option(s.val(),s.val()));});});
+}
+function loadTournaments(){
+  tournamentSelectMatch.innerHTML='';
+  db.ref('tournaments').once('value',snap=>{
+    snap.forEach(s=>{const v=s.val();const opt=document.createElement('option');opt.value=s.key;opt.textContent=v.tournamentName;tournamentSelectMatch.appendChild(opt);});
+  });
+}
+
+function renderSets(){
+  const matchType=document.querySelector('input[name="matchType"]:checked').value;
+  setsContainer.innerHTML='';
+  const teamA=teamASelectMatch.value,teamB=teamBSelectMatch.value;
+  let setCount=matchType==='予選'?1:parseInt(setCountSelect.value);
+  setOptions.style.display=matchType==='予選'?'none':'block';
+
+  for(let i=1;i<=setCount;i++){
+    const box=document.createElement('div');box.classList.add('setBox');
+
+    const lbl=document.createElement('div');lbl.classList.add('set-label');lbl.textContent=`Set ${i}`;box.appendChild(lbl);
+
+    const row=document.createElement('div');row.classList.add('setRow');
+    const scoreA=document.createElement('select');const scoreB=document.createElement('select');
+    scoreA.classList.add('scoreSelect');scoreB.classList.add('scoreSelect');
+    for(let s=0;s<=8;s++){scoreA.appendChild(new Option(s,s));scoreB.appendChild(new Option(s,s));}
+
+    const spA=document.createElement('div');spA.classList.add('score-team');spA.textContent=teamA||'自チーム';
+    const scoreWrap=document.createElement('div');scoreWrap.classList.add('score-input-wrap');
+    const spVs=document.createElement('span');spVs.classList.add('score-vs');spVs.textContent='–';
+    scoreWrap.append(scoreA,spVs,scoreB);
+    const spB=document.createElement('div');spB.classList.add('score-team','team-b');spB.textContent=teamB||'相手チーム';
+    row.append(spA,scoreWrap,spB);box.appendChild(row);
+
+    const vpgRow=document.createElement('div');vpgRow.classList.add('vpgRow');vpgRow.style.display='none';
+    const vpgA=document.createElement('select');const vpgB=document.createElement('select');
+    vpgA.classList.add('vpgSelect');vpgB.classList.add('vpgSelect');
+    for(let s=0;s<=8;s++){vpgA.appendChild(new Option(s,s));vpgB.appendChild(new Option(s,s));}
+    const spVpgLbl=document.createElement('span');spVpgLbl.classList.add('vpg-label');spVpgLbl.textContent='VPG';
+    const vpgWrap=document.createElement('div');vpgWrap.classList.add('score-input-wrap');
+    const spVpgVs=document.createElement('span');spVpgVs.classList.add('score-vs');spVpgVs.textContent='–';
+    vpgWrap.append(vpgA,spVpgVs,vpgB);
+    vpgRow.append(spVpgLbl,vpgWrap);box.appendChild(vpgRow);
+    setsContainer.appendChild(box);
+
+    function checkVPG(){
+      const a=parseInt(scoreA.value),b=parseInt(scoreB.value);
+      vpgRow.style.display=(matchType==='トーナメント'&&a===b&&a!==0)?'flex':'none';
+      calculateResult();
+    }
+    function calculateResult(){
+      let wA=0,wB=0;
+      document.querySelectorAll('.setBox').forEach(bx=>{
+        const s=bx.querySelectorAll('.setRow select');
+        let a=parseInt(s[0].value),b=parseInt(s[1].value);
+        const v=bx.querySelector('.vpgRow');
+        if(v.style.display==='flex'){const vs=v.querySelectorAll('select');const va=parseInt(vs[0].value),vb=parseInt(vs[1].value);if(!(va===0&&vb===0)){a=va;b=vb;}}
+        if(a>b)wA++;else if(b>a)wB++;
+      });
+      resultSpan.textContent=wA>wB?teamA:wB>wA?teamB:'引き分け';
+    }
+    scoreA.addEventListener('change',checkVPG);scoreB.addEventListener('change',checkVPG);
+    vpgA.addEventListener('change',calculateResult);vpgB.addEventListener('change',calculateResult);
+  }
+}
+
+saveMatchBtn.addEventListener('click', async ()=>{
+  const year=yearSelectMatch.value,tournamentKey=tournamentSelectMatch.value;
+  const category=matchCategorySelect.value,type=document.querySelector('input[name="matchType"]:checked').value;
+  const teamA=teamASelectMatch.value,teamB=teamBSelectMatch.value;
+  const snapshot=await db.ref(`tournaments/${tournamentKey}/tournamentName`).get();
+  const tournamentName=snapshot.exists()?snapshot.val():"未分類大会";
+  const sets=[];
+  document.querySelectorAll('.setBox').forEach(box=>{
+    const s=box.querySelectorAll('.setRow select');
+    const vpgs=box.querySelectorAll('.vpgRow select');
+    const scoreA=s[0].value,scoreB=s[1].value;
+    let data={scoreA,scoreB};
+    if(vpgs.length===2){const vpgA=vpgs[0].value,vpgB=vpgs[1].value;if((vpgA!=="0"||vpgB!=="0")&&(vpgA!==""&&vpgB!==""))data.vpgA=vpgA,data.vpgB=vpgB;}
+    sets.push(data);
+  });
+  const key=db.ref('matches').push().key;
+  db.ref(`matches/${key}`).set({year,tournamentKey,tournamentName,category,type,teamA,teamB,sets}).then(()=>alert('試合保存完了！'));
+});
+
+loadTeams();loadTournaments();renderSets();
+document.querySelectorAll('input[name="matchType"]').forEach(r=>r.addEventListener('change',renderSets));
+setCountSelect.addEventListener('change',renderSets);
+teamASelectMatch.addEventListener('change',renderSets);
+teamBSelectMatch.addEventListener('change',renderSets);
+</script>
+</body>
+</html>
