@@ -397,9 +397,12 @@ function updateAll(){
 }
 
 function savePlayer(){
-  const name = document.getElementById("playerName").value;
+  const name = document.getElementById("playerName").value.trim();
   const age = document.getElementById("playerAge").value;
   if(!name) return alert("名前を入力してください");
+  if(name.length > 100 || /[.#$\[\]\/\u0000-\u001f\u007f]/.test(name)) {
+    return alert("名前は100文字以内で、. # $ [ ] / や制御文字を含めずに入力してください");
+  }
   const data = {
     age, scores:{},
     playStyleSelect: document.getElementById("playStyleSelect").value,
@@ -421,7 +424,10 @@ function loadPlayers(){
     const list = document.getElementById("playerList");
     list.innerHTML = '<option value="">— 選手を選択 —</option>';
     Object.keys(players).forEach(name => {
-      list.innerHTML += `<option value="${name}">${name}</option>`;
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      list.appendChild(option);
     });
   });
 }
