@@ -38,6 +38,7 @@ function getTeamRank(totalScore, count) {
 }
 
 window.onload = async () => {
+    await SakuraAccess.ready;
     const { ref, onValue, get } = window.dbRefs;
     const db = window.db;
 
@@ -63,7 +64,7 @@ window.onload = async () => {
             for (let k in s) { const v = parseFloat(s[k]); if (!isNaN(v)) total += v; }
             const rData = getRankData(total);
             const config = posConfig[String(p.mainPosition || "").trim()] || { short: "??", class: "" };
-            return { id: key, name: p.name || key, totalScore: total, rankLabel: rData.rank + rData.rating, rankTextClass: `rank-text-${rData.rank}`, posClass: config.class, pos: config.short };
+            return { id: key, name: String(p.name || key), totalScore: total, rankLabel: rData.rank + rData.rating, rankTextClass: `rank-text-${rData.rank}`, posClass: config.class, pos: config.short };
         }).filter(p => p !== null);
         renderAll();
     });
@@ -93,11 +94,12 @@ function renderAll() {
         card.innerHTML = `
             <div class="card-rank-display ${p.rankTextClass}">${p.rankLabel}</div>
             <div class="card-pos">${p.pos}</div>
-            <div class="card-name">${p.name}</div>
+            <div class="card-name"></div>
         `;
 
         // --- 名前のインパクト最大化ロジック ---
 const nameEl = card.querySelector('.card-name');
+nameEl.textContent = p.name;
 const nameLen = p.name.length;
 
 if (nameLen >= 5) {
@@ -250,6 +252,7 @@ function makeDraggable(el) {
 }
 
 async function saveLayout() {
+    if (!SakuraAccess.canEdit) return alert("保存は管理者のみ可能です");
     const name = document.getElementById('tactic-name').value.trim();
     if (!name) return alert("陣形名を入力してください");
     await window.dbRefs.set(window.dbRefs.ref(window.db, `tactics/layouts/${name}`), layouts);
@@ -270,6 +273,7 @@ async function loadSelectedLayout() {
 }
 
 function deleteSelectedLayout() {
+    if (!SakuraAccess.canEdit) return alert("削除は管理者のみ可能です");
     const name = document.getElementById('tactic-list').value;
     if (!name) return alert("削除する陣形を選択してください");
     if (confirm(`「${name}」を削除しますか？`) && confirm(`本当に削除しますか？`)) {
@@ -326,21 +330,4 @@ window.loadSelectedLayout = async function() {
         alert(`陣形「${name}」を読み込みました`);
     }
 };
-
-// renderAllの中の「座標更新」部分の確認
-// transformを直接いじることで、CSSのtransitionが反応します。
-if (card.getAttribute('data-dragging') !== 'true') {
-    const thisPos = layouts[currentMode] && layouts[currentMode][safeId];
-    if (thisPos) {
-        if (card.parentElement !== court) court.appendChild(card);
-        // translate3dを使うとGPU加速が効くため、アニメーションがより滑らかになります
-        card.style.transform = `translate3d(${thisPos.x}px, ${thisPos.y}px, 0)`;
-    } else {
-        // ベンチに戻る時もアニメーションさせたい場合はここを調整
-        if (card.parentElement !== pool) {
-            card.style.transform = "translate3d(0, 0, 0)"; 
-            pool.appendChild(card);
-        }
-    }
-}
 
