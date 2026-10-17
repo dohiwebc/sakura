@@ -120,6 +120,10 @@
   background-color: #ddd;
 }
   </style>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+<script src="firebase-access.js?v=1"></script>
 </head>
 
 <body>
@@ -177,267 +181,43 @@
 
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
-    authDomain: "dodge-player-7a5ff.firebaseapp.com",
-    databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "dodge-player-7a5ff",
-    storageBucket: "dodge-player-7a5ff.appspot.com",
-    messagingSenderId: "752106851441",
-    appId: "1:752106851441:web:7081da0e058980ab479fd0"
-  };
-
-  document.addEventListener("DOMContentLoaded", () => {
-  const hamburger = document.getElementById('hamburger');
-  const sideMenu = document.getElementById('sideMenu');
-
-  if (hamburger && sideMenu) {
-    hamburger.addEventListener('click', () => {
-      if (sideMenu.style.display === 'block') {
-        sideMenu.style.display = 'none';
-      } else {
-        sideMenu.style.display = 'block';
-      }
-    });
-  }
-});
-
-
-  const app = initializeApp(firebaseConfig);
-  const database = getDatabase(app);
-  const playersRef = ref(database, 'players');
-
-  
-
-
-    const tbody = document.querySelector("#playerTable tbody");
-    let players = [];
-    let currentSortKey = "name"; // 初期は名前昇順
-    let currentSortAsc = true;
-
-    function fetchPlayers() {
-  const db = getDatabase();
-  const playersRef = ref(db, "players");
-
-  onValue(playersRef, (snapshot) => {
-    const data = snapshot.val(); // ← この行が必須！
-
-    if (data) {
-      players = Object.entries(data).map(([name, player]) => {
-        const scores = player.scores || {};
-
-        const newPlayer = {
-          name,
-          ...player,
-          ...scores
-        };
-
-        const abilityKeys = [
-          "control", "speed", "technique", "ballPower", "handCatch", "feint", "passcut",
-          "defensecut", "spinControl", "stamina", "agility", "reflexes", "catching",
-          "aggressiveness", "conditionStability", "vision", "thinking", "teamwork",
-          "tacticalUnderstanding", "attackAwareness", "defenseAwareness", "pressureResistance",
-          "positioning"
-        ];
-
-        abilityKeys.forEach(key => {
-          if (newPlayer[key] !== undefined) {
-            newPlayer[key] = Number(newPlayer[key]);
-          }
-        });
-
-        return newPlayer;
-      });
-
-      // 初期表示（名前順）
-      sortAndRender(currentSortKey, currentSortAsc);
-    } else {
-      renderTable([]); // データがなかった場合
-    }
+const abilities = ["control","speed","technique","ballPower","handCatch","feint","passcut","defensecut","spinControl","stamina","agility","reflexes","catching","aggressiveness","conditionStability","vision","thinking","teamwork","tacticalUnderstanding","attackAwareness","defenseAwareness","pressureResistance","positioning"];
+const tbody = document.querySelector('#playerTable tbody');
+let players = [], currentSortKey = 'name', currentSortAsc = true;
+function render() {
+  const sorted = players.slice().sort((a,b) => {
+    const value = currentSortKey === 'name' ? a.name.localeCompare(b.name, 'ja') : (Number(a[currentSortKey]) || 0) - (Number(b[currentSortKey]) || 0);
+    return currentSortAsc ? value : -value;
   });
-}
-
-onValue(playersRef, (snapshot) => {
-  const data = snapshot.val();
-
-  if (data) {
-    players = Object.entries(data).map(([name, player]) => {
-      const scores = player.scores || {};
-
-      const newPlayer = {
-        name,
-        ...player,
-        ...scores
-      };
-
-      const abilityKeys = [
-        "control", "speed", "technique", "ballPower", "handCatch", "feint", "passcut",
-        "defensecut", "spinControl", "stamina", "agility", "reflexes", "catching",
-        "aggressiveness", "conditionStability", "vision", "thinking", "teamwork",
-        "tacticalUnderstanding", "attackAwareness", "defenseAwareness", "pressureResistance",
-        "positioning"
-      ];
-
-      // 各能力値を数値化
-      abilityKeys.forEach(key => {
-        newPlayer[key] = Number(newPlayer[key]) || 0;
-      });
-
-      // 合計点を計算して totalScore にセット
-      newPlayer.totalScore = abilityKeys.reduce((sum, key) => sum + newPlayer[key], 0);
-
-      return newPlayer;
+  tbody.replaceChildren();
+  sorted.forEach(player => {
+    const tr = document.createElement('tr');
+    ['name', ...abilities, 'totalScore'].forEach(key => {
+      const td = document.createElement('td'); td.textContent = String(player[key] ?? ''); tr.appendChild(td);
     });
-
-    // 初期ソート＆描画
-    sortAndRender(currentSortKey, currentSortAsc);
-
-  } else {
-    players = [];
-    renderTable(players);
-  }
-});
-
-
-    // ソート関数（文字列も数値も対応）
-    function sortPlayers(data, key, asc) {
-      return data.slice().sort((a, b) => {
-        if (a[key] === undefined || b[key] === undefined) return 0;
-
-        // 名前は文字列、それ以外は数値としてソート
-        if (key === "name") {
-          return asc ? a[key].localeCompare(b[key]) : b[key].localeCompare(a[key]);
-        } else {
-          return asc ? a[key] - b[key] : b[key] - a[key];
-        }
-      });
-    }
-
-    // テーブル描画関数
-    function renderTable(data) {
-  tbody.innerHTML = "";
-  data.forEach(player => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${player.name || ""}</td>
-      <td>${player.control ?? ""}</td>
-      <td>${player.speed ?? ""}</td>
-      <td>${player.technique ?? ""}</td>
-      <td>${player.ballPower ?? ""}</td>
-      <td>${player.handCatch ?? ""}</td>
-      <td>${player.feint ?? ""}</td>
-      <td>${player.passcut ?? ""}</td>
-      <td>${player.defensecut ?? ""}</td>
-      <td>${player.spinControl ?? ""}</td>
-      <td>${player.stamina ?? ""}</td>
-      <td>${player.agility ?? ""}</td>
-      <td>${player.reflexes ?? ""}</td>
-      <td>${player.catching ?? ""}</td>
-      <td>${player.aggressiveness ?? ""}</td>
-      <td>${player.conditionStability ?? ""}</td>
-      <td>${player.vision ?? ""}</td>
-      <td>${player.thinking ?? ""}</td>
-      <td>${player.teamwork ?? ""}</td>
-      <td>${player.tacticalUnderstanding ?? ""}</td>
-      <td>${player.attackAwareness ?? ""}</td>
-      <td>${player.defenseAwareness ?? ""}</td>
-      <td>${player.pressureResistance ?? ""}</td>
-      <td>${player.positioning ?? ""}</td>
-      <td>${player.totalScore ?? 0}</td>  
-    `;
     tbody.appendChild(tr);
   });
+  document.querySelectorAll('th').forEach(th => {
+    th.classList.remove('sorted-asc','sorted-desc');
+    if (th.dataset.key === currentSortKey) th.classList.add(currentSortAsc ? 'sorted-asc' : 'sorted-desc');
+  });
 }
-
-    // ソート実行＆描画＆ヘッダー矢印更新
-    function sortAndRender(key, asc) {
-      const sorted = sortPlayers(players, key, asc);
-      renderTable(sorted);
-      updateSortIndicators(key, asc);
-    }
-
-    // ソート矢印の表示更新
-    function updateSortIndicators(sortedKey, asc) {
-      document.querySelectorAll("th").forEach(th => {
-        th.classList.remove("sorted-asc", "sorted-desc");
-        if (th.dataset.key === sortedKey) {
-          th.classList.add(asc ? "sorted-asc" : "sorted-desc");
-        }
-      });
-    }
-
-   document.querySelectorAll("#playerTable thead th").forEach(th => {
-  th.addEventListener("click", () => {
-    const key = th.dataset.key;
-    if (!key || key === "name") return; // ←ここで名前だけ弾く
-
-    if (currentSortKey === key) {
-      currentSortAsc = !currentSortAsc;
-    } else {
-      currentSortKey = key;
-      currentSortAsc = true;
-    }
-    sortAndRender(currentSortKey, currentSortAsc);
-  });
+document.querySelectorAll('#playerTable thead th').forEach(th => th.addEventListener('click', () => {
+  const key = th.dataset.key; if (!key) return;
+  currentSortAsc = currentSortKey === key ? !currentSortAsc : true; currentSortKey = key; render();
+}));
+const hamburger = document.getElementById('hamburger'), sideMenu = document.getElementById('sideMenu');
+if (hamburger && sideMenu) hamburger.addEventListener('click', () => { sideMenu.style.display = sideMenu.style.display === 'block' ? 'none' : 'block'; });
+SakuraAccess.ready.then(() => {
+  SakuraAccess.db.ref('players').on('value', snapshot => {
+    players = Object.entries(snapshot.val() || {}).filter(([,p]) => p && typeof p === 'object' && p.deleted !== true).map(([name,p]) => {
+      const row = { name };
+      abilities.forEach(key => { row[key] = Number(p.scores?.[key]) || 0; });
+      row.totalScore = abilities.reduce((sum,key) => sum + row[key], 0); return row;
+    });
+    render();
+  }, () => { tbody.replaceChildren(); });
 });
-
-
-
-players = Object.entries(data).map(([name, player]) => {
-  const scores = player.scores || {};
-  const newPlayer = {
-    name,
-    ...player,
-    ...scores
-  };
-  // scores内の値を数値に変換
-  Object.keys(scores).forEach(key => {
-    newPlayer[key] = Number(scores[key]);
-  });
-
-  // 合計点を計算（数値の能力値だけ足す）
-  const abilityKeys = [
-    "control", "speed", "technique", "ballPower", "handCatch", "feint", "passcut",
-    "defensecut", "spinControl", "stamina", "agility", "reflexes", "catching",
-    "aggressiveness", "conditionStability", "vision", "thinking", "teamwork",
-    "tacticalUnderstanding", "attackAwareness", "defenseAwareness", "pressureResistance",
-    "positioning"
-  ];
-
-  newPlayer.total = abilityKeys.reduce((sum, key) => sum + (newPlayer[key] || 0), 0);
-
-  return newPlayer;
-});
-
-const rowHtml = `
-<tr>
-  <td>${player.name || ""}</td>
-  <td>${player.control ?? ""}</td>
-  <!-- 省略 -->
-  <td>${player.positioning ?? ""}</td>
-  <td>${player.totalScore ?? 0}</td>
-</tr>
-`;
-
-    fetchPlayers();
-
-
-const hamburger = document.getElementById('hamburger');
-const sideMenu = document.getElementById('sideMenu');
-
-hamburger.addEventListener('click', () => {
-  if (!sideMenu) return;
-
-  if (sideMenu.style.display === 'block') {
-    sideMenu.style.display = 'none';
-  } else {
-    sideMenu.style.display = 'block';
-  }
-});
-
-  </script>
+</script>
 </body>
 </html>
