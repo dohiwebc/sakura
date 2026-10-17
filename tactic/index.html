@@ -6,6 +6,10 @@
   <title>戦術ボード | さくらGroup</title>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto+Slab:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+<script src="../firebase-access.js?v=1"></script>
 </head>
 <body>
 
@@ -35,12 +39,12 @@
 
     <div class="tactic-management">
       <input type="text" id="tactic-name" placeholder="陣形名を入力">
-      <button onclick="saveLayout()" class="save-btn">保存</button>
+      <button data-admin-only disabled onclick="saveLayout()" class="save-btn">保存</button>
       <button onclick="resetCurrentLayout()" class="btn-danger">配置リセット</button>
       <span style="color:rgba(255,215,0,.2);margin:0 4px;">|</span>
       <select id="tactic-list"><option value="">— 保存済みを選択 —</option></select>
       <button onclick="loadSelectedLayout()" class="btn-primary">読み込み</button>
-      <button onclick="deleteSelectedLayout()" class="btn-neutral">削除</button>
+      <button data-admin-only disabled onclick="deleteSelectedLayout()" class="btn-neutral">削除</button>
     </div>
   </div>
 
@@ -64,25 +68,10 @@
     <div id="player-pool" class="player-pool"></div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
-      authDomain: "dodge-player-7a5ff.firebaseapp.com",
-      databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "dodge-player-7a5ff",
-      storageBucket: "dodge-player-7a5ff.firebasestorage.app",
-      messagingSenderId: "752106851441",
-      appId: "1:752106851441:web:7081da0e058980ab479fd0"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    window.db = db;
-    window.dbRefs = { ref, onValue, set, get };
-  </script>
+  <script>
+window.db = SakuraAccess.db;
+window.dbRefs = { ref: (database, path) => database.ref(path), onValue: (reference, callback) => reference.on("value", callback), set: (reference, value) => reference.set(value), get: reference => reference.get() };
+</script>
   <script src="script.js"></script>
 </body>
 </html>
