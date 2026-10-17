@@ -1,0 +1,52 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "teamMembers": {
+      ".read": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && auth.token.email === 'sakuragroup20232023@gmail.com'",
+      ".write": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && auth.token.email === 'sakuragroup20232023@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".validate": "newData.isBoolean() && newData.val() === true"
+      }
+    },
+    "players": {
+      ".read": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && (auth.token.email === 'sakuragroup20232023@gmail.com' || root.child('teamMembers').child(auth.uid).val() === true)",
+      ".write": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && auth.token.email === 'sakuragroup20232023@gmail.com'",
+      "$player": {
+        ".validate": "newData.hasChildren(['age', 'scores']) && $player.length <= 100",
+        "scores": {
+          ".validate": "newData.hasChildren([\"control\",\"speed\",\"technique\",\"ballPower\",\"handCatch\",\"feint\",\"passcut\",\"defensecut\",\"spinControl\",\"stamina\",\"agility\",\"reflexes\",\"catching\",\"aggressiveness\",\"conditionStability\",\"vision\",\"thinking\",\"teamwork\",\"tacticalUnderstanding\",\"attackAwareness\",\"defenseAwareness\",\"pressureResistance\",\"positioning\"])",
+          "$score": {
+            ".validate": "(newData.isNumber() && newData.val() >= 1 && newData.val() <= 100) || (newData.isString() && newData.val().matches(/^([1-9]|[1-9][0-9]|100)$/))"
+          }
+        },
+        "age": {
+          ".validate": "newData.isString() && newData.val().matches(/^(12|13|14|15|16|17|18|19|20|21\\+)?$/)"
+        },
+        "playStyle": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "extraInfo": {
+          ".validate": "newData.isString() && newData.val().length <= 5000"
+        }
+      }
+    },
+    "matches": {
+      ".read": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && (auth.token.email === 'sakuragroup20232023@gmail.com' || root.child('teamMembers').child(auth.uid).val() === true)",
+      ".write": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && auth.token.email === 'sakuragroup20232023@gmail.com'"
+    },
+    "tactics": {
+      ".read": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && (auth.token.email === 'sakuragroup20232023@gmail.com' || root.child('teamMembers').child(auth.uid).val() === true)",
+      ".write": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && auth.token.email === 'sakuragroup20232023@gmail.com'"
+    },
+    "teams": {
+      ".read": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && (auth.token.email === 'sakuragroup20232023@gmail.com' || root.child('teamMembers').child(auth.uid).val() === true)",
+      ".write": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && auth.token.email === 'sakuragroup20232023@gmail.com'"
+    },
+    "tournaments": {
+      ".read": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && (auth.token.email === 'sakuragroup20232023@gmail.com' || root.child('teamMembers').child(auth.uid).val() === true)",
+      ".write": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com' && auth.token.email === 'sakuragroup20232023@gmail.com'"
+    }
+  }
+}
