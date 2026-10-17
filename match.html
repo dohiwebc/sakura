@@ -5,23 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>大会結果一覧 | さくらGroup</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto+Slab:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+<script src="firebase-access.js?v=1"></script>
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
-  authDomain: "dodge-player-7a5ff.firebaseapp.com",
-  databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dodge-player-7a5ff",
-  storageBucket: "dodge-player-7a5ff.firebasestorage.app",
-  messagingSenderId: "752106851441",
-  appId: "1:752106851441:web:7081da0e058980ab479fd0",
-  measurementId: "G-84DLRYS2X4"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const db = SakuraAccess.db;
+const ref = (database, path) => database.ref(path);
+const child = (parent, path) => parent.child(path);
+const get = reference => reference.get();
 
 // ──── インスタ画像生成 ────────────────────────────
 function createInstagramImage(data) {
@@ -247,7 +240,7 @@ function setupAccordion() {
   });
 }
 
-window.onload = loadMatches;
+SakuraAccess.ready.then(loadMatches);
 </script>
 <style>
 :root{
