@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>さくらGroup 大会管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto+Slab:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+<script src="firebase-access.js?v=1"></script>
 <style>
 :root{
   --bg:#07070f;--bg2:#0c0c18;--bg3:#111120;
@@ -186,7 +190,7 @@ select.scoreSelect:focus,select.vpgSelect:focus{border-color:var(--gold);backgro
 .divider{height:1px;background:var(--gborder);margin:32px 0;}
 </style>
 </head>
-<body>
+<body data-admin-page="true">
 
 <header>
   <a href="index.html" class="header-back">← トップ</a>
@@ -282,21 +286,8 @@ select.scoreSelect:focus,select.vpgSelect:focus{border-color:var(--gold);backgro
   <button class="btn-save" id="saveMatchBtn">試合保存</button>
 </section>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
-  authDomain: "dodge-player-7a5ff.firebaseapp.com",
-  databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dodge-player-7a5ff",
-  storageBucket: "dodge-player-7a5ff.appspot.com",
-  messagingSenderId: "752106851441",
-  appId: "1:752106851441:web:7081da0e058980ab479fd0",
-  measurementId: "G-84DLRYS2X4"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db = SakuraAccess.db;
 
 const myTeamInput = document.getElementById('myTeamInput');
 const saveMyTeamBtn = document.getElementById('saveMyTeamBtn');
@@ -443,7 +434,7 @@ saveMatchBtn.addEventListener('click', async ()=>{
   db.ref(`matches/${key}`).set({year,tournamentKey,tournamentName,category,type,teamA,teamB,sets}).then(()=>alert('試合保存完了！'));
 });
 
-loadTeams();loadTournaments();renderSets();
+SakuraAccess.ready.then(({ canEdit }) => { if (canEdit) { loadTeams();loadTournaments();renderSets(); } });
 document.querySelectorAll('input[name="matchType"]').forEach(r=>r.addEventListener('change',renderSets));
 setCountSelect.addEventListener('change',renderSets);
 teamASelectMatch.addEventListener('change',renderSets);
