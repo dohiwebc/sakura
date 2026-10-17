@@ -23,7 +23,7 @@
   style.textContent = 'html:not([data-team-access="allowed"]) body > :not(#team-access-panel):not(script):not(style){display:none!important} #team-access-panel{position:relative;z-index:1000;padding:20px;box-sizing:border-box;background:#111120;color:#ede0c4;border-bottom:1px solid #8a7050;font:14px sans-serif;overflow-wrap:anywhere} #team-access-panel button{padding:10px 16px;margin:6px;background:#ffd700;color:#07070f;border:0;border-radius:4px;cursor:pointer} #team-access-panel input{padding:10px;margin:6px;color:#ede0c4;background:#07070f;border:1px solid #8a7050} #team-access-panel [hidden]{display:none!important}';
   document.head.appendChild(style);
   function mount() {
-    const panel = document.createElement('section');
+    const panel = document.createElement('div');
     panel.id = 'team-access-panel';
     panel.setAttribute('aria-label', 'チームのログイン');
     panel.innerHTML = '<strong>さくらGroup・チーム専用</strong><p id="team-access-status" role="status">ログイン状態を確認しています…</p><button id="team-sign-in" hidden>Googleでログイン</button><button id="team-sign-out" hidden>ログアウト</button><details id="team-member-admin" hidden><summary>閲覧メンバーの管理</summary><p>メンバーがログイン後に表示されるユーザーIDを登録します。登録した人はチームデータを閲覧できます。</p><label>ユーザーID <input id="team-member-uid" autocomplete="off" maxlength="128"></label><button id="team-member-add">閲覧を許可</button><button id="team-member-remove">閲覧許可を解除</button><p id="team-member-result" role="status"></p></details>';
@@ -79,7 +79,7 @@
           document.documentElement.dataset.teamAccess = 'allowed';
           document.querySelectorAll('[data-admin-only]').forEach(el => { el.disabled = !canEdit; });
           if (document.body.dataset.adminPage && !canEdit) {
-            document.querySelector('main').hidden = true;
+            document.querySelectorAll('body > main, body > nav, body > section').forEach(el => { el.style.setProperty('display', 'none', 'important'); });
             status.textContent += ' この管理画面の操作は管理者専用です。';
           }
           wasAllowed = true;
