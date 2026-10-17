@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>選手能力評価 | さくらGroup</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto+Slab:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.5.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.5.0/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+<script src="firebase-access.js?v=1"></script>
 <style>
 :root{
   --bg:#07070f;--bg2:#0c0c18;--bg3:#111120;
@@ -225,7 +227,7 @@ textarea:focus{border-color:var(--gold2);}
           <option value="21+">21以上</option>
         </select>
       </div>
-      <button class="btn-save" onclick="savePlayer()">選手を保存</button>
+      <button class="btn-save" data-admin-only disabled onclick="savePlayer()">選手を保存</button>
       <select id="playerList" onchange="selectPlayer()">
         <option value="">— 選手を選択 —</option>
       </select>
@@ -322,18 +324,7 @@ textarea:focus{border-color:var(--gold2);}
 </main>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
-  authDomain: "dodge-player-7a5ff.firebaseapp.com",
-  databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dodge-player-7a5ff",
-  storageBucket: "dodge-player-7a5ff.firebasestorage.app",
-  messagingSenderId: "752106851441",
-  appId: "1:752106851441:web:7081da0e058980ab479fd0",
-  measurementId: "G-84DLRYS2X4"
-};
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db = SakuraAccess.db;
 
 const params = [
   "control","speed","technique","ballPower","handCatch","feint",
@@ -364,7 +355,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el) updateSlider(el);
   });
   initRadarChart();
-  loadPlayers();
+  SakuraAccess.ready.then(({ canEdit }) => {
+    document.querySelectorAll("main input, main textarea, main select").forEach(el => { if (el.id !== "playerList") el.disabled = !canEdit; });
+    loadPlayers();
+  });
   updateAll();
 });
 
@@ -397,6 +391,7 @@ function updateAll(){
 }
 
 function savePlayer(){
+  if (!SakuraAccess.canEdit) return alert("保存は管理者のみ可能です");
   const name = document.getElementById("playerName").value.trim();
   const age = document.getElementById("playerAge").value;
   if(!name) return alert("名前を入力してください");
